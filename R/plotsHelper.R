@@ -1,0 +1,215 @@
+##     The multitaper R package
+##     Multitaper and spectral analysis package for R
+##     Copyright (C) 2011 Karim Rahim 
+
+##     This file is part of the multitaper package for R.
+
+##     The multitaper package is free software: you can redistribute it and
+##     or modify
+##     it under the terms of the GNU General Public License as published by
+##     the Free Software Foundation, either version 2 of the License, or
+##     any later version.
+
+##     The multitaper package is distributed in the hope that it will be 
+##     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+##     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##     GNU General Public License for more details.
+
+##     You should have received a copy of the GNU General Public License
+##     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+
+##     If you wish to report bugs please contact the author. 
+##     karim.rahim@gmail.com
+##     112 Jeffery Hall, Queen's University, Kingston Ontario
+##     Canada, K7L 3N6
+
+## currently unchanged 
+.plotFtest <- function(x, ftbase=1.01, siglines=NULL, ...) {
+
+    stopifnot(!is.null(x$mtm$Ftest) ||
+              "Ftest" %in% class(x))
+    
+    log <- match.call(expand.dots = )$log
+    xlab <- match.call(expand.dots = )$xlab
+    ylab <- match.call(expand.dots = )$ylab
+
+    if(is.null(xlab)) xlab <- "Frequency"
+    if(is.null(ylab)) ylab <- "F Test"
+    
+    ylog = "n"
+    if(is.null(log) || log == "yes") {
+        ylog = "y"
+    }
+
+    ftestVals = x$mtm$Ftest
+    ftestVals[ftestVals < ftbase] <- ftbase
+    plot(x$freq, ftestVals, log=ylog, ylab=ylab, xlab=xlab,
+         type="l",...)
+}
+
+
+## utilities functions added for plot.mtm.coh
+## fortran versions exist and could be cleaned up and implemented...
+## nhi is nfreqs
+## c
+## c x       Input Data
+## c xv      Variance estimate of X
+## c xp      Plotting Array, Returned
+## c         xp(.,1) mean - 1 standard deviation
+## c         xp(.,2) smoothed x
+## c         xp(.,3) mean + 1 standard deviation
+## c nehl    Number each half for smoothing limits
+## -- for smoothing variance
+## c nehc    Number Each Half for Center
+## -- for smoothing data
+## c slo     Low end symmetry - "even","odd", "extend"
+## c shi   High end symmetry
+.lftr3p <- function(x, xv, nhi, nehl, nehc, slo, shi) {
+    ip <- 2
+
+    xp <- matrix(NA, nhi, 3)
+
+    xp[,3] <- .llftr7(xv, nhi, "hi", "even", "extend", nehl, ip)
+    xp[,2] <- .llftr7(x, nhi, "-", slo, shi, nehc, ip)
+
+    xp[,1] <- xp[,2] - sqrt(xp[,3])
+    xp[,3] <- xp[,2] + sqrt(xp[,3])
+
+    return(xp)
+}
+
+
+##modified djt jk
+##Programmers note. currently uses jkcoh7 which containes segment averaging
+##Segment averaging can be looked into and implemented
+##Segment averaging can likely be vectorized or should it be
+##implemented in C?
+## Dave sets ip=2 in ./odinlibs-1.1/src/ts/lftr3p.f
+.llftr7 <- function(x,nhi,lohi,slo,shi,neh,ip) {
+
+    nlo <- 1
+    y <- array(NA, nhi)
+    z <- array(NA, nhi+2*neh)
+
+    zNlo <- nlo + neh
+    zNhi <- nhi + neh
+    zHi <- zNhi + neh
+
+    ##  Generate Weights
+    fw <- as.double(neh + 1)
+    wt <- ((1-((-neh:neh)/fw))*(1+((-neh:neh)/fw)))**ip
+    cwt <- sum(wt)
+    wt <-  wt/cwt
+    
+    ## Move data to working (z) array, extend ends,default
+    innerSeq <- zNlo:zNhi
+    z[innerSeq] <- x
+    lowerSeq <- 1:neh
+    z[lowerSeq] <- x[1]
+    upperSeq <- (zNhi+1):zHi
+    z[upperSeq] <- x[nhi]
+    
+    ## Low End
+    
+    if(tolower(slo) == "even") {
+        z[rev(lowerSeq)] <-  z[(zNlo+1):(zNlo+neh)]
+    }
+
+    
+    if(tolower(slo) == "odd") {
+        ## not tested...
+        z[rev(lowerSeq)] <-  2.0*z[zNlo] - z[(zNlo+1):(zNlo+neh)]
+    }
+
+    ## High End
+    if(tolower(shi) == "even") {
+        for( j in  1:neh) { ## 850
+            z[zNhi+j] <- z[zNhi-j]
+        } ## 850
+    }
+
+    if(tolower(shi) == "odd") {
+        for( j  in 1:neh) { ## 860
+            z[zNhi + j] =  2.*z[zNhi] - z[zNhi-j]
+        } ## 860
+    }
+    
+    ## High Limit, supress local Minima
+    if(tolower(lohi) ==  "hi") {
+        for( n in  (nlo+1):(nhi-1) ) { ## 1400
+            if( (x[n] < x[n-1]) &&  (x[n]  < x[n+1]) ) {
+                zNoff <- n +neh
+                z[zNoff] <- (x[n-1]+x[n+1])/2.0
+            }
+        } ## 1400
+    }
+    ## Low Limit, supress local Maxima
+    if(tolower(lohi) == "lo") {
+        for( n in  (nlo+1):(nhi-1) ) {
+            if( (x[n] > x[n-1] ) &&  (x[n] > x[n+1]) ) {
+                zNoff <- n +neh
+                z[n] = (x[n-1]+x[n+1])/2.0
+            }
+        } ## 1500
+    }
+
+    zOffSetSeq <- 1:(2*neh+1)
+    for (n in nlo:nhi) { ## 2000
+        ##print(n)
+        y[n] <- sum(wt*z[zOffSetSeq])
+        zOffSetSeq <- zOffSetSeq +1
+    } ## 2000
+    return(y)
+    ##checks out on first test
+    
+}
+
+
+.trnrm <- function(k) sqrt(2*k-2)
+
+.C2toF <-  function(xx, trnrm_) {
+    return( trnrm_*log((1.0+sqrt(xx))/(1.0-sqrt(xx)))/2.0 )
+}
+
+.FtoMSC <- function(ff, trnrm_) tanh(ff/trnrm_)**2
+
+
+## odinlibs nplot function....
+## c
+## c       Cumulative probability points in 1-2-5 sequence
+## c ndata Number data points; output approximately from 1/ndata
+## c       to 1 - 1/ndata
+## c nmax  Maximum number of Outputs = Dimension of out,cout,Qnorm
+## c       nmax approx > 6* log10(ndata)
+## c
+## c out   Cumulative distribution
+## c cout  Character*8 version of CDF
+## c Qnorm Quantiles of Standard Normal at CDF
+## c nout  Number of output points
+## c
+## using jkcoh defaults...
+.paxpt7 <- function(ndata=2000, nmax=40) {
+    ndec <-  round(log10(max(11,ndata)));
+    nout = 6*ndec -1;
+    if(nout > nmax) {
+        return;
+    }
+    n <- 0;
+    out <- array(NA, nout)
+    for(m in seq(-ndec, -1, 1)) {
+        for(k in c(1,2,5)) {
+            n <- n +1;
+            v <- as.double(k*10**m);
+            out[n] <- v;
+            out[nout +1 -n] <- as.double(1.0 - v);
+        }
+    }
+    return(list(out=out, Qnorm=qnorm(out),nout=nout));
+}
+
+.cdfToMSqCoh <- function(cdf, k) {
+    fnavm <- as.double(k-1);
+    return(1.0  - (1.0 - cdf)**(1.0/fnavm));
+}
+
+## end utilities added mainly for plot.mtm.coh
