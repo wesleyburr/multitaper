@@ -36,7 +36,7 @@ sineTaper <- function(n, k) {
 
     coef1 <- as.double(sqrt(2/(n+1)))
     coef2 <- as.double((pi/(n+1))*seq(1,n,1))
-    kmat <- matrix(data=as.double(rep(seq(1,n),each=n)),nrow=n,ncol=k)
+    kmat <- matrix(data=as.double(rep(seq(1,n),each=k)),nrow=n,ncol=k)
     
     taper <- coef1*sin(coef2*kmat)
 
