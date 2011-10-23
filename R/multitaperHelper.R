@@ -100,3 +100,44 @@
                 mxiter=out$mxiter,
                 varjk=out$varjk, bcjk=out$bcjk, sjk=out$sjk))
 }
+
+.qsF <- function(nFreqs,nFFT,k,cft,useAdapt,kadapt) {
+
+    out <- .Fortran("quickSineF", as.integer(nFreqs),
+                    as.integer(nFFT), as.integer(k),
+                    cft=cft, as.logical(useAdapt),
+                    kadapt=matrix(data=as.double(kadapt),nrow=nFreqs,ncol=1),
+                    spec=matrix(data=double(nFreqs),nrow=nFreqs,ncol=1),
+                    PACKAGE='multitaper')
+
+    return(list(spec=out$spec))
+}
+
+.cF <- function(n,v) {
+
+  out <- .Fortran("curbF",as.integer(n),as.double(v),PACKAGE='multitaper')
+  opt <- out[[2]]
+  return(list(opt=opt))
+}
+
+.nF <- function(n,i1,i2,s) {
+
+   out <- .Fortran("northF",as.integer(n),as.integer(i1),
+                   as.integer(i2),sx=matrix(data=as.double(s),nrow=n,ncol=1),
+                   ds=double(1), dds=double(1),
+                   PACKAGE='multitaper')
+
+   return(list(ds=out$ds, dds=out$dds))
+}
+
+.adaptSine <- function(ntimes, k, nFreqs, sx, nFFT, cft, df, fact) {
+
+    out <- .Fortran("adapt",as.integer(ntimes),as.integer(k),
+                    as.integer(nFreqs),sx=matrix(data=as.double(sx),nrow=nFreqs,ncol=1),
+                    as.integer(nFFT), cft=cft, as.double(df),
+                    kopt=double(nFreqs),fact=as.double(fact),PACKAGE='multitaper')
+
+    return(list(spec=out$sx,kadapt=out$kopt))
+
+}
+#

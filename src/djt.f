@@ -416,34 +416,34 @@ c*********************************************************************
 
       integer nFreqs,nFFT,k, ks, i, j, i2, j1, j2
       logical useAdapt
-      complex cft(1:nFFT), zz
-      real*8 spec(1:nFreqs), ck, wt
-      integer kadapt(1:nFreqs)
-      
+      complex*16 cft(nFFT), zz
+      real*8 spec(1:nFreqs), ck, wt, kadapt(1:nFreqs)
+
       do 5 j=1,nFreqs
  5    spec = 0.0d+00
 
       do 6 i=1,nFreqs
         i2 = 2*(i-1)
         if(useAdapt) then
-          ks = kadapt(i)
+          ks = int(kadapt(i))
         else
           ks = k
         endif
-
-        ck = 1/(ks**2)
+      
+        ck = 1/(real(ks)**2)
 
         do 7 j=1,ks
           j1 = mod(i2+nFFT-j,nFFT)
           j2 = mod(i2+j,nFFT)
           zz = cft(j1+1) - cft(j2+1)
           wt = 1.0d+00 - ck*(j-1)**2
-
           spec(i) = spec(i) + (real(zz)**2 + aimag(zz)**2)*wt
  7    continue
-      spec(i) = spec(i)*(6.0d+00 *ks)/(4*(ks**2) + (3*ks) -1)
+      
+      spec(i) = spec(i)*(6.0d+00 *real(ks))/(4*(real(ks)**2) + 
+     * (3*real(ks)) -1)
  6    continue
-
+      return
       end subroutine
 
 c*********************************************************************
@@ -460,7 +460,7 @@ c*********************************************************************
       subroutine curbF(n, v)
       implicit none
       integer n, j, k
-      real v(n), vloc
+      real*8 v(n), vloc
 
       do 1500 j=2, n-1
         if (v(j).lt.v(j+1) .and. v(j).lt.v(j-1)) then
@@ -470,6 +470,7 @@ c*********************************************************************
  1200      continue
         endif
  1500 continue
+      return
       end
 
 
@@ -487,9 +488,8 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine northF(n, i1, i2, s, ds, dds)
       integer i1, i2, n, el, L, kk, i 
-      real gamma, s(n), ds, dds, amid, u1sq, u2sq, dot0, dot1, dot2
+      real*8 gamma, s(n), ds, dds, amid, u1sq, u2sq, dot0, dot1, dot2
      *,   ssq
-
       L = i2 - i1 + 1
       el=L
       gamma = (el**2 - 1.0)/12.0
@@ -503,12 +503,74 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       ssq=0.0
       do 1100 kk=1, L
         i=kk + i1 - 1
+c  Negative or excessive index uses even function assumption
         if (i.le. 0) i=2 - i
         if (i.gt. n) i=2*n - i
         dot0 = dot0 + s(i)
         dot1 = dot1 + (kk - amid) * s(i)
         dot2 = dot2 + ((kk - amid)**2 - gamma)*s(i)
+*       ssq = ssq + s(i)**2
  1100 continue
+*     c0 = dot0/u0sq
+*     c1 = dot1/u1sq
+*     c2 = dot2/u2sq
+*     resq = abs(ssq - u0sq*c0**2- u1sq*c1**2- u2sq*c2**2)
       ds = dot1/u1sq
       dds = 2.0*dot2/u2sq
+c      write(*,*) ds, dds
+      return
       end
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+cc
+cc adapt
+cc
+cc Performs adaptive spectral estimation via sine taper approach.
+cc From pilot estimate of spectrum, computes estimates of S'' to be used
+cc in Eq. (13) of Riedel & Sidorenko (1995).
+cc
+cc  Adapted somewhat from Robert Parker's 'psd.f'.
+cc
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine adapt(ntimes, k, nFreqs, sx, nFFT, cft, df,kopt,fact)
+      implicit none
+      integer k, ntimes, nFreqs, ispan, iter, nFFT, j
+      real*8 sx(nFreqs), kopt(nFreqs), y(nFreqs), dy, ddy, R, ak, phi
+     *, sigR, opt(nFreqs), fact, df, c1, c2
+      complex*16 cft(nFFT)
+      data c1/1.2000/, c2/3.437/
+
+      do 5 j=1,nFreqs
+ 5      kopt(j) = k
+
+c  Adaptive iteration for MSE spectrum
+      do 1600 iter=1, ntimes
+c
+        do 1100 j=1, nFreqs
+           y(j)= log(sx(j))
+ 1100   continue
+
+c  Estimate K, number of tapers at each freq for MSE spectrum
+c  R = S"/S -- use R = Y" + (Y')**2 , Y=ln S.
+        do 1200 j=1, nFreqs
+c
+          ispan = int(kopt(j)*1.4)
+          call northF(nFreqs, j-ispan, j+ispan, y, dy, ddy)
+          R = (ddy  + dy**2)/df**2
+          ak=kopt(j)/real(2*ispan)
+          phi=720.0*ak**5*(1.0 - 1.286*ak + 0.476*ak**3 - 0.0909*ak**5)
+          sigR= sqrt(phi/real(kopt(j))**5) / df**2
+          opt(j)=c2/(df**4 *( R**2 + 1.4*sigR**2) /fact**2)** 0.2
+ 1200   continue
+
+        call curbF(nFreqs, opt)
+        do 1550 j=1, nFreqs
+          kopt(j)=max(3.0, opt(j))
+ 1550   continue
+c  Recompute spectrum with optimal variable taper numbers
+        call quickSineF(nFreqs,nFFT,1,cft,.true.,kopt,sx)
+ 1600 continue
+      return
+      end
+

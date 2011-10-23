@@ -43,6 +43,7 @@ spec.mtm <- function(timeSeries,
                      na.action=na.fail,
                      returnInternals=FALSE,
                      sineAdaptive=FALSE,
+                     sineSmoothFact=0.2,
                      ...) {
 
     series <- deparse(substitute(timeSeries))
@@ -53,6 +54,7 @@ spec.mtm <- function(timeSeries,
     if( (taper=="sine") && Ftest) { stop("Cannot compute Ftest over sine tapers.")}
     if( (taper=="sine") && !returnZeroFreq) { returnZeroFreq = TRUE; 
                                               warning("returnZeroFreq must be TRUE for sine taper option.") }
+    if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high. Are you sure you want to do this?")}
 
     # warning for deltaT missing: makes all frequency plots incorrect
     if(!is.ts(timeSeries)) {
@@ -99,7 +101,7 @@ spec.mtm <- function(timeSeries,
     }
 
     if(taper=="dpss") { 
-      mtm.obj <- spec.mtm.dpss(timeSeries=timeSeries,
+      mtm.obj <- .spec.mtm.dpss(timeSeries=timeSeries,
                      nw=nw, k=k, nFFT=nFFT, 
                      dpssIN=dpssIN, returnZeroFreq=returnZeroFreq, 
                      Ftest=Ftest, jackknife=jackknife, jkCIProb=jkCIProb, 
@@ -108,11 +110,11 @@ spec.mtm <- function(timeSeries,
                      n=n, deltaT=deltaT, sigma2=sigma2, series=series,
                      ...) 
     } else if(taper=="sine") {
-      mtm.obj <- spec.mtm.sine(timeSeries=timeSeries, k=k, sineAdaptive=sineAdaptive,
+      mtm.obj <- .spec.mtm.sine(timeSeries=timeSeries, k=k, sineAdaptive=sineAdaptive,
                      nFFT=nFFT, dpssIN=dpssIN, returnZeroFreq=returnZeroFreq,
                      returnInternals=FALSE, n=n, deltaT=deltaT, sigma2=sigma2,
                      series=series,maxAdaptiveIterations=maxAdaptiveIterations,
-                     ...)
+                     smoothFact=sineSmoothFact, ...)
     }
 
     if(plot) {
@@ -125,12 +127,12 @@ spec.mtm <- function(timeSeries,
 
 ##############################################################
 ##
-##  spec.mtm.dpss
+##  .spec.mtm.dpss
 ##
 ##  Computes multitaper spectrum using Slepian tapers
 ##
 ##############################################################
-spec.mtm.dpss <- function(timeSeries,
+.spec.mtm.dpss <- function(timeSeries,
                      nw,
                      k,
                      nFFT,
@@ -279,7 +281,7 @@ spec.mtm.dpss <- function(timeSeries,
 ## 
 #########################################################################
 
-spec.mtm.sine <- function(timeSeries,
+.spec.mtm.sine <- function(timeSeries,
                           nFFT,
                           k,
                           sineAdaptive,
@@ -290,6 +292,7 @@ spec.mtm.sine <- function(timeSeries,
                           sigma2,
                           series=series,
                           maxAdaptiveIterations,
+                          smoothFact,
                           ...) {
 
     dw <- NULL
@@ -305,6 +308,8 @@ spec.mtm.sine <- function(timeSeries,
 
     nFFT <- nFFT*2
     # returnZeroFreq forced to TRUE, offset = 0
+
+    # ** sine tapers produce nFFT/4 unique results; need to scale nFFT and nFreqs accordingly
     nFreqs <- nFFT %/% 4 + as.numeric(returnZeroFreq)
     offSet <- if(returnZeroFreq) 0 else 1 
     scaleFreq <- 1 / as.double(nFFT/2 * deltaT)
@@ -314,60 +319,31 @@ spec.mtm.sine <- function(timeSeries,
 
     # compute a single FFT; since we are using sine tapers, this is all we need
     ones <- matrix(1,n,1)
-    timeSeries <- timeSeries*ones
-    paddedData<- rbind(timeSeries, matrix(0, nPadLen, 1))
+    paddedData<- rbind(timeSeries*ones, matrix(0, nPadLen, 1))
     cft <- mvfft(paddedData)
  
     # constant number of tapers, or adaptive?
     spec <- as.double(matrix(0,1,nFreqs))
 
     if(!sineAdaptive) { # constant k tapers
-      spec <- quickSine(nFreqs=nFreqs,nFFT=nFFT,k=k,cft=cft,useAdapt=FALSE,kadapt=NULL)      
+       spec <- (.qsF(nFreqs=nFreqs,nFFT=nFFT,k=k,cft=cft,useAdapt=FALSE,kadapt=c(1)))$spec
     } else {
-      # smoothing factor defaults to 1, not changeable
-      fact <- 1;
-      initTaper <- ceiling(3.0 + sqrt(fact*n)/5.0);
- 
-      # c_1, c_2 are constants for parabolic weighting
-      c1=1.2000 
-      c2=3.437
+
+      initTaper <- ceiling(3.0 + sqrt(smoothFact*n)/5.0);
 
       # pilot estimate of S
-      spec0 <- quickSine(nFreqs=nFreqs,nFFT=nFFT,k=initTaper,
-                         cft=cft,useAdapt=FALSE,kadapt=NULL)
+      spec0 <- (.qsF(nFreqs=nFreqs,nFFT=nFFT,k=k,cft=cft,useAdapt=FALSE,kadapt=c(1)))$spec
 
-      # initialize kadapt
-      kadapt <- matrix(data=k, nrow=nFreqs, ncol=1)
-      opt <- matrix(0.0, nrow=nFreqs, ncol=1)
-      for(j in 1:maxAdaptiveIterations) {
-        #cat(".")
-        y <- log(spec0);
-
-        system.time(
-        for(m in 1:nFreqs) {
-            # Estimate kadapt(f) for each f
-            # R = S''/S ~ y'' + (y')^2 for y=ln(S)
-  
-            ispan = round(kadapt[m]*1.4)
-            deriv <- northog(n=nFreqs,i1=(m-ispan),i2=(m+ispan),s=y)
-            dy <- deriv[1]
-            ddy <- deriv[2]
-  
-            R <- (ddy  + dy^2)/df^2
-            ak <- kadapt[m]/(2*ispan) # correct for integer steps 
-            phi <- 720.0 * ak^5 * (1.0 - 1.286*ak + 0.476*ak^3 - 0.0909*ak^5)
-            sigR <- sqrt(phi/(kadapt[m]^5)) / df^2
-            opt[m] <- c2/(df^4 *( R^2 + 1.4*sigR^2) /fact^2)^0.2
-          } # end of frequencies
-        )
-        opt <- curb(n=nFreqs,v=opt)
-        opt[opt <= 3] <- 3
-        kadapt <- opt
-        # recompute spectra for next step in iteration
-        spec0 <- quickSine(nFreqs=nFreqs,nFFT=nFFT,cft=cft,useAdapt=TRUE,kadapt=kadapt)
-      } # end of iterative loop    
-      #cat("\n");
-      spec <- spec0;
+      out <- .adaptSine (ntimes=maxAdaptiveIterations, 
+                          k=initTaper, 
+                          nFreqs=nFreqs, 
+                          sx=spec0, 
+                          nFFT=nFFT, 
+                          cft=cft,
+                          df=df,
+                          fact=smoothFact) 
+      spec <- out$spec;
+      kadapt <- out$kadapt;
     } # end of adaptive logic
 
     # normalize spectrum
@@ -390,6 +366,7 @@ spec.mtm.sine <- function(timeSeries,
                      method="Sine Multitaper Spectral Estimate",
                      pad= nFFT - n,
                      spec=specFinal,
+                     spec = NULL,
                      freq=resultFreqs,
                      series=series,
                      mtm=auxiliary)
@@ -468,6 +445,7 @@ northog <- function(n,i1,i2,s) {
       }
       ds = dot1/u1sq
       dds = 2.0*dot2/u2sq
+      print(paste(ds,dds,sep=" "))
       return(c(ds,dds))
 }
 
