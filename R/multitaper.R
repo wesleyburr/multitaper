@@ -2,7 +2,7 @@
 ##     Multitaper and spectral analysis package for R
 ##     Copyright (C) 2011 Karim Rahim 
 ##
-##     Written by Karim Rahim, with contributions from Wesley Burr.
+##     Written by Karim Rahim and Wesley Burr.
 ##
 ##     This file is part of the multitaper package for R.
 ##     http://cran.r-project.org/web/packages/multitaper/index.html
@@ -42,6 +42,7 @@ spec.mtm <- function(timeSeries,
                      plot=TRUE,
                      na.action=na.fail,
                      returnInternals=FALSE,
+                     sineAdaptive=FALSE,
                      ...) {
 
     series <- deparse(substitute(timeSeries))
@@ -50,6 +51,8 @@ spec.mtm <- function(timeSeries,
 
     if( (taper=="sine") && jackknife) { stop("Cannot jackknife over sine tapers.")}
     if( (taper=="sine") && Ftest) { stop("Cannot compute Ftest over sine tapers.")}
+    if( (taper=="sine") && !returnZeroFreq) { returnZeroFreq = TRUE; 
+                                              warning("returnZeroFreq must be TRUE for sine taper option.") }
 
     # warning for deltaT missing: makes all frequency plots incorrect
     if(!is.ts(timeSeries)) {
@@ -84,6 +87,9 @@ spec.mtm <- function(timeSeries,
     stopifnot(nFFT >= n)
 
     ## convert time-series to zero-mean by one of three methods, if set; default is Slepian
+
+    # *** should clean this up; we compute swz and ssqswz in centre(), then have to recompute
+    #  it below for the Ftest ...
     if(centre=="Slepian") {
       timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
     } else if(centre=="arithMean") {
@@ -102,10 +108,11 @@ spec.mtm <- function(timeSeries,
                      n=n, deltaT=deltaT, sigma2=sigma2, series=series,
                      ...) 
     } else if(taper=="sine") {
-      mtm.obj <- spec.mtm.sine(timeSeries=timeSeries,
+      mtm.obj <- spec.mtm.sine(timeSeries=timeSeries, k=k, sineAdaptive=sineAdaptive,
                      nFFT=nFFT, dpssIN=dpssIN, returnZeroFreq=returnZeroFreq,
                      returnInternals=FALSE, n=n, deltaT=deltaT, sigma2=sigma2,
-                     series=series, ...)
+                     series=series,maxAdaptiveIterations=maxAdaptiveIterations,
+                     ...)
     }
 
     if(plot) {
@@ -163,6 +170,9 @@ spec.mtm.dpss <- function(timeSeries,
     
     swz <- NULL ## Percival and Walden H0
     ssqswz <- NULL
+    swz <- apply(dw, 2, sum)
+    swz[1:(k/2)*2] <- 0.0
+    ssqswz <- sum(swz**2)
 
     taperedData <- dw*timeSeries
     
@@ -199,9 +209,9 @@ spec.mtm.dpss <- function(timeSeries,
                    minVal=minVal)
     }
 
-    ftestRes <- NULL
+   ftestRes <- NULL
 
-    if(Ftest) {
+   if(Ftest) {
         if(is.null(swz)) {
             swz <- apply(dw, 2, sum)
         }
@@ -255,19 +265,33 @@ spec.mtm.dpss <- function(timeSeries,
 ##  Riedel, Kurt S. and Sidorenko, Alexander, Minimum Bias Multiple 
 ##    Taper Spectral Estimation. IEEE Transactions on Signal Processing,
 ##    Vol. 43, No. 1, January 1995.
+##
+##  Algorithm implementation based on previous work by:
+##    German Prieto, Universidad de los Andes
+##       via \texttt{mtsepc}, a F90 package that can be found at
+##       http://wwwprof.uniandes.edu.co/~gprieto/software/mwlib.html
+##
+##    and
+##
+##    Robert L. Parker, Scripps Institution of Oceanography
+##      via \texttt{psd.f}, a F77 program that can be found at
+##      http://igppweb.ucsd.edu/~parker/Software/Source/psd.f
 ## 
 #########################################################################
 
 spec.mtm.sine <- function(timeSeries,
                           nFFT,
+                          k,
+                          sineAdaptive,
                           dpssIN, 
-                          returnZeroFreq,
+                          returnZeroFreq=TRUE,
                           n, 
                           deltaT, 
                           sigma2,
                           series=series,
+                          maxAdaptiveIterations,
                           ...) {
-                          
+
     dw <- NULL
     receivedDW <- TRUE
     if(!.is.dpss(dpssIN)) {
@@ -279,25 +303,76 @@ spec.mtm.sine <- function(timeSeries,
       dw <- .dpssV(dpss)
     }
 
-    nFreqs <- nFFT %/% 2 + as.numeric(returnZeroFreq)
+    nFFT <- nFFT*2
+    # returnZeroFreq forced to TRUE, offset = 0
+    nFreqs <- nFFT %/% 4 + as.numeric(returnZeroFreq)
     offSet <- if(returnZeroFreq) 0 else 1 
-    scaleFreq <- 1 / as.double(nFFT * deltaT)
-    
-    taperedData <- dw*timeSeries
-    
-    nPadLen <- nFFT - n
-    paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))
-    cft <- mvfft(paddedTaperedData)
-    cft <- cft[(1+offSet):(nFreqs+offSet),]
-    
+    scaleFreq <- 1 / as.double(nFFT/2 * deltaT)
     resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
+    nPadLen <- nFFT - n
+    df <- 1/nFFT/deltaT
 
-    ## compute sine-based multitaper estimate
-    ## cft is nFreqs by k
-    ## Formula from Abstract, Riedel & Sidorenko
+    # compute a single FFT; since we are using sine tapers, this is all we need
+    ones <- matrix(1,n,1)
+    timeSeries <- timeSeries*ones
+    paddedData<- rbind(timeSeries, matrix(0, nPadLen, 1))
+    cft <- mvfft(paddedData)
+ 
+    # constant number of tapers, or adaptive?
+    spec <- as.double(matrix(0,1,nFreqs))
 
-    ## first find y(f \pm j/(2n+2) ) for j=1,2,...,k
-    ##  --> requires either wrapping around 0/Nyquist, or ignoring missing elements
+    if(!sineAdaptive) { # constant k tapers
+      spec <- quickSine(nFreqs=nFreqs,nFFT=nFFT,k=k,cft=cft,useAdapt=FALSE,kadapt=NULL)      
+    } else {
+      # smoothing factor defaults to 1, not changeable
+      fact <- 1;
+      initTaper <- ceiling(3.0 + sqrt(fact*n)/5.0);
+ 
+      # c_1, c_2 are constants for parabolic weighting
+      c1=1.2000 
+      c2=3.437
+
+      # pilot estimate of S
+      spec0 <- quickSine(nFreqs=nFreqs,nFFT=nFFT,k=initTaper,
+                         cft=cft,useAdapt=FALSE,kadapt=NULL)
+
+      # initialize kadapt
+      kadapt <- matrix(data=k, nrow=nFreqs, ncol=1)
+      opt <- matrix(0.0, nrow=nFreqs, ncol=1)
+      for(j in 1:maxAdaptiveIterations) {
+        #cat(".")
+        y <- log(spec0);
+
+        system.time(
+        for(m in 1:nFreqs) {
+            # Estimate kadapt(f) for each f
+            # R = S''/S ~ y'' + (y')^2 for y=ln(S)
+  
+            ispan = round(kadapt[m]*1.4)
+            deriv <- northog(n=nFreqs,i1=(m-ispan),i2=(m+ispan),s=y)
+            dy <- deriv[1]
+            ddy <- deriv[2]
+  
+            R <- (ddy  + dy^2)/df^2
+            ak <- kadapt[m]/(2*ispan) # correct for integer steps 
+            phi <- 720.0 * ak^5 * (1.0 - 1.286*ak + 0.476*ak^3 - 0.0909*ak^5)
+            sigR <- sqrt(phi/(kadapt[m]^5)) / df^2
+            opt[m] <- c2/(df^4 *( R^2 + 1.4*sigR^2) /fact^2)^0.2
+          } # end of frequencies
+        )
+        opt <- curb(n=nFreqs,v=opt)
+        opt[opt <= 3] <- 3
+        kadapt <- opt
+        # recompute spectra for next step in iteration
+        spec0 <- quickSine(nFreqs=nFreqs,nFFT=nFFT,cft=cft,useAdapt=TRUE,kadapt=kadapt)
+      } # end of iterative loop    
+      #cat("\n");
+      spec <- spec0;
+    } # end of adaptive logic
+
+    # normalize spectrum
+    const <- var(timeSeries)/sum(spec)/df
+    specFinal <- const*spec
 
     ## set up return object
     auxiliary <- list(dpss=dpssIN,
@@ -314,7 +389,7 @@ spec.mtm.sine <- function(timeSeries,
     spec.out <- list(origin.n=n,
                      method="Sine Multitaper Spectral Estimate",
                      pad= nFFT - n,
-                     spec=Sfinal,
+                     spec=specFinal,
                      freq=resultFreqs,
                      series=series,
                      mtm=auxiliary)
@@ -323,6 +398,101 @@ spec.mtm.sine <- function(timeSeries,
     return(spec.out);
 }
 
+#########################################################################
+##
+## quickSine
+##
+## Sine Taper constant taper number quick iterative spectrum estimation
+## Based on same source as spec.mtm.sine.
+## 
+#########################################################################
+
+quickSine <- function(nFreqs,nFFT,k,cft,useAdapt,kadapt) { 
+
+      spec <- rep(0.0, nFreqs)
+      for(i in 1:nFreqs) {
+        i2 <- 2*(i-1);
+        if(useAdapt) {
+          ks <- kadapt[i] 
+        } else {
+          ks <- k
+        }
+        ck <- 1/(ks^2);
+
+        # Use parabolic weighting
+        for(j in 1:ks) {
+          j1 <- (i2+nFFT-j) %% nFFT;
+          j2 <- (i2+j) %% nFFT;
+          zz <- cft[j1+1] - cft[j2+1];
+          wt <- 1.0 - ck*(j-1)^2;
+
+          spec[i] = spec[i] + (Mod(zz)^2) * wt;
+        }
+        # normalize for parabolic factor
+        spec[i] = spec[i] * (6.0*ks)/(4*(ks^2)+(3*ks)-1);
+      } 
+      return(spec)
+} 
+
+
+#########################################################################
+##
+## northog
+##
+## Performs quadratically-weighted LS fit to some function 's' by
+## a degree-two polynomial in an orthogonal basis; returns
+## d1 and d2, estimates of 1st and 2nd derivatives at center of record
+## 
+#########################################################################
+
+
+northog <- function(n,i1,i2,s) {
+      L = i2 - i1 + 1
+      el=L
+      gamma = (el^2 - 1.0)/12.0
+      u0sq = el
+      u1sq = el*(el^2 - 1.0)/12.0
+      u2sq = (el*(el^2 - 1.0)*(el^2- 4.0))/180.0
+      amid= 0.5*(el + 1.0)
+      dot0=0.0
+      dot1=0.0
+      dot2=0.0
+      ssq=0.0
+      for(kk in 1:L) {
+        i=kk + i1 - 1
+        if (i <= 0) { i=2 - i;}
+        if (i > n) { i=2*n - i;}
+        dot0 = dot0 + s(i)
+        dot1 = dot1 + (kk - amid) * s(i)
+        dot2 = dot2 + ((kk - amid)^2 - gamma)*s(i)
+      }
+      ds = dot1/u1sq
+      dds = 2.0*dot2/u2sq
+      return(c(ds,dds))
+}
+
+#########################################################################
+##
+## curb
+##
+##  Reworks the input n-vector v() so that all points lie below
+##  the piece-wise linear function v(k) + abs(j-k), where v(k)
+##  is a local minimum in the original v.
+##  Effectively clips strong peaks and keeps slopes under 1 in
+##  magnitude.
+## 
+#########################################################################
+curb <- function(n, vin) {
+      v <- vin;
+      for(j in 2:(n-1)) {
+        if (v[j] < v[j+1] && v[j] < v[j-1]) { vloc <- v[j]; 
+          for(k in 1:n) {
+            v[k] <- min(v[k], vloc+abs(j-k));
+          }
+        }
+      }
+      return(v[1:n]);
+}
 
 #########################################################################
 ##

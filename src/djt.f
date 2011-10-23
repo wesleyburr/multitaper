@@ -397,3 +397,118 @@ c     Keep zero-frequency reference
       end subroutine 
 c **** end jkcoh
 
+c*********************************************************************
+cc 
+cc  quickSineF
+cc
+cc  Simple non-adaptive (possibly weighted) sine taper multitaper
+cc  computation program. Explicitly for calling from within 
+cc  the adaptive loop of spec.mtm.sine. The R-specific version 
+cc  of this (quickSine) runs quickly on its own; it is the adaptive
+cc  loops that need speeding up.
+cc
+cc  Adapted from Robert Parker's 'psd.f'.
+cc
+c*********************************************************************
+      subroutine quickSineF(nFreqs,nFFT,k,cft,useAdapt,kadapt,spec)
+
+      implicit none
+
+      integer nFreqs,nFFT,k, ks, i, j, i2, j1, j2
+      logical useAdapt
+      complex cft(1:nFFT), zz
+      real*8 spec(1:nFreqs), ck, wt
+      integer kadapt(1:nFreqs)
+      
+      do 5 j=1,nFreqs
+ 5    spec = 0.0d+00
+
+      do 6 i=1,nFreqs
+        i2 = 2*(i-1)
+        if(useAdapt) then
+          ks = kadapt(i)
+        else
+          ks = k
+        endif
+
+        ck = 1/(ks**2)
+
+        do 7 j=1,ks
+          j1 = mod(i2+nFFT-j,nFFT)
+          j2 = mod(i2+j,nFFT)
+          zz = cft(j1+1) - cft(j2+1)
+          wt = 1.0d+00 - ck*(j-1)**2
+
+          spec(i) = spec(i) + (real(zz)**2 + aimag(zz)**2)*wt
+ 7    continue
+      spec(i) = spec(i)*(6.0d+00 *ks)/(4*(ks**2) + (3*ks) -1)
+ 6    continue
+
+      end subroutine
+
+c*********************************************************************
+cc 
+cc  curbF
+cc
+cc  Rewrites input vector so all points lie below a piecewise
+cc  linear function v(k) + abs(j-k); clips strong peaks, keeps
+cc  slopes below 1 in magnitude. Taken from 
+cc  Robert Parker's 'psd.f'.
+cc
+c*********************************************************************
+ 
+      subroutine curbF(n, v)
+      implicit none
+      integer n, j, k
+      real v(n), vloc
+
+      do 1500 j=2, n-1
+        if (v(j).lt.v(j+1) .and. v(j).lt.v(j-1)) then
+           vloc=v(j)
+           do 1200 k=1, n
+             v(k)=min(v(k), vloc+abs(j-k))
+ 1200      continue
+        endif
+ 1500 continue
+      end
+
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+cc
+cc northF
+cc
+cc Performs quadratically-weighted LS fit to some function 's' by
+cc a degree-two polynomial in an orthogonal basis; returns
+cc d1 and d2, estimates of 1st and 2nd derivatives at center of record
+cc
+cc  Taken directly from Robert Parker's 'psd.f'.
+cc 
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine northF(n, i1, i2, s, ds, dds)
+      integer i1, i2, n, el, L, kk, i 
+      real gamma, s(n), ds, dds, amid, u1sq, u2sq, dot0, dot1, dot2
+     *,   ssq
+
+      L = i2 - i1 + 1
+      el=L
+      gamma = (el**2 - 1.0)/12.0
+      u0sq = el
+      u1sq = el*(el**2 - 1.0)/12.0
+      u2sq = (el*(el**2 - 1.0)*(el**2- 4.0))/180.0
+      amid= 0.5*(el + 1.0)
+      dot0=0.0
+      dot1=0.0
+      dot2=0.0
+      ssq=0.0
+      do 1100 kk=1, L
+        i=kk + i1 - 1
+        if (i.le. 0) i=2 - i
+        if (i.gt. n) i=2*n - i
+        dot0 = dot0 + s(i)
+        dot1 = dot1 + (kk - amid) * s(i)
+        dot2 = dot2 + ((kk - amid)**2 - gamma)*s(i)
+ 1100 continue
+      ds = dot1/u1sq
+      dds = 2.0*dot2/u2sq
+      end
