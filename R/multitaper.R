@@ -54,7 +54,7 @@ spec.mtm <- function(timeSeries,
     if( (taper=="sine") && Ftest) { stop("Cannot compute Ftest over sine tapers.")}
     if( (taper=="sine") && !returnZeroFreq) { returnZeroFreq = TRUE; 
                                               warning("returnZeroFreq must be TRUE for sine taper option.") }
-    if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high. Are you sure you want to do this?")}
+    if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
 
     # warning for deltaT missing: makes all frequency plots incorrect
     if(!is.ts(timeSeries)) {
@@ -69,16 +69,15 @@ spec.mtm <- function(timeSeries,
 
     if(taper=="dpss") {
       stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw, n > 8)
+      if(k==1) {
+        Ftest=FALSE
+        jackknife=FALSE
+      }
     } else {
       stopifnot(k <= n, k >= 1, n > 8)
     }
 
     na.action(timeSeries)
-    if(k==1) {
-        Ftest=FALSE
-        jackknife=FALSE
-    }
-
     sigma2 <- var(timeSeries) * (n-1)/n
 
     if(nFFT == "default") {
@@ -90,8 +89,6 @@ spec.mtm <- function(timeSeries,
 
     ## convert time-series to zero-mean by one of three methods, if set; default is Slepian
 
-    # *** should clean this up; we compute swz and ssqswz in centre(), then have to recompute
-    #  it below for the Ftest ...
     if(centre=="Slepian") {
       timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
     } else if(centre=="arithMean") {
@@ -306,16 +303,15 @@ spec.mtm <- function(timeSeries,
       dw <- .dpssV(dpss)
     }
 
-    nFFT <- nFFT*2
     # returnZeroFreq forced to TRUE, offset = 0
-
     # ** sine tapers produce nFFT/4 unique results; need to scale nFFT and nFreqs accordingly
+    nFFT <- nFFT*2
     nFreqs <- nFFT %/% 4 + as.numeric(returnZeroFreq)
     offSet <- if(returnZeroFreq) 0 else 1 
     scaleFreq <- 1 / as.double(nFFT/2 * deltaT)
     resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
     nPadLen <- nFFT - n
-    df <- 1/nFFT/deltaT
+    df <- 1/as.double(nFFT*deltaT)
 
     # compute a single FFT; since we are using sine tapers, this is all we need
     ones <- matrix(1,n,1)
@@ -327,7 +323,8 @@ spec.mtm <- function(timeSeries,
 
     if(!sineAdaptive) { # constant k tapers
        spec <- (.qsF(nFreqs=nFreqs,nFFT=nFFT,k=k,cft=cft,useAdapt=FALSE,kadapt=c(1)))$spec
-    } else {
+       dofs <- NULL
+    } else { # adaptively weighted tapers
 
       initTaper <- ceiling(3.0 + sqrt(smoothFact*n)/5.0);
 
@@ -343,7 +340,7 @@ spec.mtm <- function(timeSeries,
                           df=df,
                           fact=smoothFact) 
       spec <- out$spec;
-      kadapt <- out$kadapt;
+      dofs <- out$kadapt;
     } # end of adaptive logic
 
     # normalize spectrum
@@ -358,7 +355,7 @@ spec.mtm <- function(timeSeries,
                       nFFT=nFFT,
                       jk=NULL,
                       Ftest=NULL,
-                      dofs=NULL,
+                      dofs=dofs,
                       nw=NULL,
                       k=k)
 
@@ -373,103 +370,6 @@ spec.mtm <- function(timeSeries,
 
     class(spec.out) <- c("mtm", "spec")
     return(spec.out);
-}
-
-#########################################################################
-##
-## quickSine
-##
-## Sine Taper constant taper number quick iterative spectrum estimation
-## Based on same source as spec.mtm.sine.
-## 
-#########################################################################
-
-quickSine <- function(nFreqs,nFFT,k,cft,useAdapt,kadapt) { 
-
-      spec <- rep(0.0, nFreqs)
-      for(i in 1:nFreqs) {
-        i2 <- 2*(i-1);
-        if(useAdapt) {
-          ks <- kadapt[i] 
-        } else {
-          ks <- k
-        }
-        ck <- 1/(ks^2);
-
-        # Use parabolic weighting
-        for(j in 1:ks) {
-          j1 <- (i2+nFFT-j) %% nFFT;
-          j2 <- (i2+j) %% nFFT;
-          zz <- cft[j1+1] - cft[j2+1];
-          wt <- 1.0 - ck*(j-1)^2;
-
-          spec[i] = spec[i] + (Mod(zz)^2) * wt;
-        }
-        # normalize for parabolic factor
-        spec[i] = spec[i] * (6.0*ks)/(4*(ks^2)+(3*ks)-1);
-      } 
-      return(spec)
-} 
-
-
-#########################################################################
-##
-## northog
-##
-## Performs quadratically-weighted LS fit to some function 's' by
-## a degree-two polynomial in an orthogonal basis; returns
-## d1 and d2, estimates of 1st and 2nd derivatives at center of record
-## 
-#########################################################################
-
-
-northog <- function(n,i1,i2,s) {
-      L = i2 - i1 + 1
-      el=L
-      gamma = (el^2 - 1.0)/12.0
-      u0sq = el
-      u1sq = el*(el^2 - 1.0)/12.0
-      u2sq = (el*(el^2 - 1.0)*(el^2- 4.0))/180.0
-      amid= 0.5*(el + 1.0)
-      dot0=0.0
-      dot1=0.0
-      dot2=0.0
-      ssq=0.0
-      for(kk in 1:L) {
-        i=kk + i1 - 1
-        if (i <= 0) { i=2 - i;}
-        if (i > n) { i=2*n - i;}
-        dot0 = dot0 + s(i)
-        dot1 = dot1 + (kk - amid) * s(i)
-        dot2 = dot2 + ((kk - amid)^2 - gamma)*s(i)
-      }
-      ds = dot1/u1sq
-      dds = 2.0*dot2/u2sq
-      print(paste(ds,dds,sep=" "))
-      return(c(ds,dds))
-}
-
-#########################################################################
-##
-## curb
-##
-##  Reworks the input n-vector v() so that all points lie below
-##  the piece-wise linear function v(k) + abs(j-k), where v(k)
-##  is a local minimum in the original v.
-##  Effectively clips strong peaks and keeps slopes under 1 in
-##  magnitude.
-## 
-#########################################################################
-curb <- function(n, vin) {
-      v <- vin;
-      for(j in 2:(n-1)) {
-        if (v[j] < v[j+1] && v[j] < v[j-1]) { vloc <- v[j]; 
-          for(k in 1:n) {
-            v[k] <- min(v[k], vloc+abs(j-k));
-          }
-        }
-      }
-      return(v[1:n]);
 }
 
 #########################################################################

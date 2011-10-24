@@ -1,42 +1,58 @@
 ##     The multitaper R package
 ##     Multitaper and spectral analysis package for R
 ##     Copyright (C) 2011 Karim Rahim 
-
+##
+##     Written by Karim Rahim.
+##
 ##     This file is part of the multitaper package for R.
-
-##     The multitaper package is free software: you can redistribute it and
-##     or modify
-##     it under the terms of the GNU General Public License as published by
-##     the Free Software Foundation, either version 2 of the License, or
-##     any later version.
-
+##     http://cran.r-project.org/web/packages/multitaper/index.html
+## 
+##     The multitaper package is free software: you can redistribute it and 
+##     or modify it under the terms of the GNU General Public License as 
+##     published by the Free Software Foundation, either version 2 of the 
+##     License, or any later version.
+##
 ##     The multitaper package is distributed in the hope that it will be 
 ##     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
 ##     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##     GNU General Public License for more details.
-
+##
 ##     You should have received a copy of the GNU General Public License
-##     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-
-##     If you wish to report bugs please contact the author. 
+##     along with multitaper.  If not, see <http://www.gnu.org/licenses/>.
+##
+##     If you wish to report bugs please contact the author:
+## 
+##     Karim Rahim
 ##     karim.rahim@gmail.com
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
 
 
+################################################################
+##
+##  dropFreqs.*
+##
+##  Plotting utility functions that allow the user to subselect
+##  a frequency range of interest, and 'drop' the extraneous
+##  frequencies. Note that these functions are intended to be
+##  used only at the end of analysis, as once they have been
+##  applied to an object, the result is not suitable for 
+##  passing into any further computational routines (such as 
+##  mtm.coh).
+##
+################################################################
 
-## these are plotting utilities. Usage for other purposes is not supported.
 
-## dropFreqs Class for selecting frequencies for plotting
-## can be used for spec, mtm and mtm.coh classes.
-
+# Handler
 dropFreqs <- function(spec, minFreq, maxFreq) UseMethod("dropFreqs")
 
+# Fall-through case
 dropFreqs.default <- function(spec, minFreq, maxFreq) {
     print("This function is only valid for objects of spec, mtm, or mtm.coh classes")
     spec
 }
 
+# Spectrum object
 dropFreqs.spec <- function(spec, minFreq, maxFreq) {
     idx <- (findInterval(spec$freq, c(minFreq,maxFreq)) == 1)
 
@@ -50,6 +66,7 @@ dropFreqs.spec <- function(spec, minFreq, maxFreq) {
     spec.out
 }
 
+# mtm object
 dropFreqs.mtm <- function(spec, minFreq, maxFreq) {
     idx <- (findInterval(spec$freq, c(minFreq,maxFreq)) == 1)
 
@@ -83,10 +100,10 @@ dropFreqs.mtm <- function(spec, minFreq, maxFreq) {
             spec.out$mtm$jk$minVal <- min(spec.out$mtm$jk$lowerCI)
         }
     }
-
     spec.out
 }
 
+# mtm.coh object
 dropFreqs.mtm.coh <- function(spec, minFreq, maxFreq) {
     idx <- (findInterval(spec$freq, c(minFreq,maxFreq)) == 1)
 

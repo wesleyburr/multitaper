@@ -2,7 +2,7 @@
 ##     Multitaper and spectral analysis package for R
 ##     Copyright (C) 2011 Karim Rahim 
 ##
-##     This file written by Wesley Burr.
+##     Written by Wesley Burr.
 ##
 ##     This file is part of the multitaper package for R.
 ##     http://cran.r-project.org/web/packages/multitaper/index.html
@@ -28,8 +28,17 @@
 ##     Canada, K7L 3N6
 
 
-## n = length time series taper, k = number of tapers
+####################################################################
 ##
+##  sineTaper
+##
+##  Generates k sine tapers of length n. These are not actually
+##  used in the \pkg{multitaper} implementation of the sine-tapered
+##  multiple taper spectrum estimate, but are provided for 
+##  plotting and transfer function purposes.
+##
+####################################################################
+
 sineTaper <- function(n, k) {
 
     stopifnot(n >= 8, k >= 1)
