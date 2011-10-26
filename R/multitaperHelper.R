@@ -39,20 +39,19 @@
 }
 
 .HF4mp1 <- function(cft, swz, nord, ssqswz) {
-    
-    ## vectorized when there are none to skip... 
-    ## Dave's [82] mu hat of f in eqn (13.5)
-    ## cmv   Complex Mean Value,
+   
+    ## Vectorized from original F77 code
+    ## Equation (13.5) of:
+    ##   Thomson, D.J. Spectrum Estimation and Harmonic Analysis,
+    ##   Proceedings of the IEEE, 1982.
+
     cmv <- (cft %*% swz) /ssqswz
-    ssqave <-  abs(cmv)**2*ssqswz
-    ##cftEst <- t(swz %*% t(cmv))
+    ssqave <-  (Mod(cmv)^2)*ssqswz
     swz <- as.matrix(swz)
-    ##removed extra crossproduct 
-    ##cftEst <- t(tcrossprod(swz,cmv))
     
-    ssqres <- apply( abs(cft - (cmv %*% t(swz)))**2,
+    ssqres <- apply( Mod(cft - (cmv %*% t(swz)))^2,
                     1, sum)
-    F_<- Re((nord-1)*ssqave/ssqres)
+    F_<- (nord-1)*ssqave/ssqres
     
     return(list(Ftest=F_,cmv=cmv))
 }

@@ -35,43 +35,70 @@
 ##  (obj$spec) or the harmonic F-test statistic (obj$Ftest).
 ##
 ##################################################################
-plot.mtm <- function(x, jackknife=FALSE, Ftest=FALSE, ftbase=1.01,
-                     siglines=NULL, ...) {
-    nw <- x$mtm$nw
-    k <- x$mtm$k
-    sub <- paste("NW = ", nw, " K = ", k, sep="")
+plot.mtm <- function(x, 
+                     jackknife=FALSE, 
+                     Ftest=FALSE, 
+                     ftbase=1.01,
+                     siglines=NULL, 
+                     ...) {
+
+    # Set frequency axis and label
+    dtUnits <- x$mtm$dtUnits
+    deltaT <- x$mtm$deltaT
+
+    # if the user has not set 'xlab' ... set it for them:
+    if(!exists("xlab")) {
+      if(!x$mtm$dtUnits == "default") {
+        xlab <- paste("Frequency in cycles/",dtUnits,sep="") }
+      else {
+        xlab <- paste("Frequency")
+      }
+    }
 
     if(Ftest) {
-        .plotFtest(x)
-    } else {
+        .plotFtest(x,xlab=xlab,siglines=siglines,ftbase=ftbase, ...)
+    } 
+    else 
+    { # plot spectrum only
+      if(x$mtm$taper=="sine") {
+        plot.spec(x, xlab=xlab, sub=" ", ...)
+      }
+      else { # case of taper=="dpss"
+        nw <- x$mtm$nw
+        k <- x$mtm$k
+        deltaT <- x$mtm$deltaT
+        dtUnits <- x$mtm$dtUnits
+        sub <- paste("(NW = ", nw, " K = ", k,")", sep="")
         log <- match.call(expand.dots = )$log
-        dBPlot <- FALSE
-        if(!is.null(log) && log== "dB" ) {
-            dBPlot <- TRUE
-        }
-        
-        if(jackknife && !is.null(x$mtm$jk)) {
+        if(jackknife) {
+          dBPlot <- FALSE
+          if(!is.null(log) && log== "dB" ) {
+            dBPlot <- TRUE }
+          if(jackknife && !is.null(x$mtm$jk)) {
             if(dBPlot) {
-                upperCI <- 10*log10(x$mtm$jk$upperCI)
-                lowerCI <- 10*log10(x$mtm$jk$lowerCI)
-                minVal <- 10*log10(x$mtm$jk$minVal)
-                maxVal <- 10*log10(x$mtm$jk$maxVal)
-            } else {
-                upperCI <- x$mtm$jk$upperCI
-                lowerCI <- x$mtm$jk$lowerCI
-                minVal <- x$mtm$jk$minVal
-                maxVal <- x$mtm$jk$maxVal
+              upperCI <- 10*log10(x$mtm$jk$upperCI)
+              lowerCI <- 10*log10(x$mtm$jk$lowerCI)
+              minVal <- 10*log10(x$mtm$jk$minVal)
+              maxVal <- 10*log10(x$mtm$jk$maxVal) 
+            } 
+            else {
+              upperCI <- x$mtm$jk$upperCI
+              lowerCI <- x$mtm$jk$lowerCI
+              minVal <- x$mtm$jk$minVal
+              maxVal <- x$mtm$jk$maxVal
+            }
+          yRange <- c(minVal, maxVal)
+          plot.spec(x, xlab=xlab, sub=sub, ylim=yRange, ...)
+          lines(x$freq, upperCI, lty=2, col=2)
+          lines(x$freq, lowerCI, lty=2, col=3)
+          }
         }
-            yRange <- c(minVal, maxVal)
-            plot.spec(x, sub=sub, ylim=yRange, ...)
-            lines(x$freq, upperCI, lty=2, col=2)
-            lines(x$freq, lowerCI, lty=2, col=3)
-        } else {
-            plot.spec(x, sub=sub, ...)
-        }
-    }
-}
-
+        else {
+          plot.spec(x, xlab=xlab, sub=sub, ...)
+        } 
+    } # end of dpss case
+  } # spectrum plot end
+} # end of function
 
 ##################################################################
 ##

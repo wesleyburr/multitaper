@@ -44,11 +44,14 @@ spec.mtm <- function(timeSeries,
                      returnInternals=FALSE,
                      sineAdaptive=FALSE,
                      sineSmoothFact=0.2,
+                     dtUnits=c("default"),
+                     periodAxis=FALSE,
                      ...) {
 
     series <- deparse(substitute(timeSeries))
     taper <- match.arg(taper,c("dpss","sine"))
     centre <- match.arg(centre,c("Slepian","arithMean","trimMean","none"))
+    dtUnits <- match.arg(dtUnits,c("second","hour","day","month","year","default"))
 
     if( (taper=="sine") && jackknife) { stop("Cannot jackknife over sine tapers.")}
     if( (taper=="sine") && Ftest) { stop("Cannot compute Ftest over sine tapers.")}
@@ -57,13 +60,16 @@ spec.mtm <- function(timeSeries,
     if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
 
     # warning for deltaT missing: makes all frequency plots incorrect
-    if(!is.ts(timeSeries)) {
+    if(!is.ts(timeSeries) && !exists("deltaT")) {
       warning("Time series is not a ts object. deltaT is not set, and frequency axes may be incorrect.")
+      deltaT <- 1.0
+      timeSeries <- as.double(as.ts(timeSeries))
+    } else if(!exists("deltaT")) {
       deltaT <- 1
       timeSeries <- as.double(as.ts(timeSeries))
     } else {
       deltaT <- deltat(timeSeries)
-      timeSeries <- as.double(timeSeries)
+      timeSeries <- as.double((timeSeries))
     }
     n <- length(timeSeries)
 
@@ -105,13 +111,15 @@ spec.mtm <- function(timeSeries,
                      maxAdaptiveIterations=maxAdaptiveIterations, 
                      returnInternals=returnInternals, 
                      n=n, deltaT=deltaT, sigma2=sigma2, series=series,
+                     dtUnits=dtUnits,
                      ...) 
     } else if(taper=="sine") {
       mtm.obj <- .spec.mtm.sine(timeSeries=timeSeries, k=k, sineAdaptive=sineAdaptive,
                      nFFT=nFFT, dpssIN=dpssIN, returnZeroFreq=returnZeroFreq,
                      returnInternals=FALSE, n=n, deltaT=deltaT, sigma2=sigma2,
                      series=series,maxAdaptiveIterations=maxAdaptiveIterations,
-                     smoothFact=sineSmoothFact, ...)
+                     smoothFact=sineSmoothFact, dtUnits=dtUnits,
+                     ...)
     }
 
     if(plot) {
@@ -144,6 +152,7 @@ spec.mtm <- function(timeSeries,
                      deltaT,
                      sigma2,
                      series,
+                     dtUnits,
                      ...) {
 
     dw <- NULL
@@ -165,13 +174,17 @@ spec.mtm <- function(timeSeries,
 
     nFreqs <- nFFT %/% 2 + as.numeric(returnZeroFreq)
     offSet <- if(returnZeroFreq) 0 else 1 
+
+    # Note that the frequency axis is set by default to unit-less
+    # scaling as 0 through 0.5 cycles/period. The user parameter
+    # dtUnits modifies this scaling in the plot.mtm function.
     scaleFreq <- 1 / as.double(nFFT * deltaT)
     
     swz <- NULL ## Percival and Walden H0
     ssqswz <- NULL
     swz <- apply(dw, 2, sum)
-    swz[1:(k/2)*2] <- 0.0
-    ssqswz <- sum(swz**2)
+    swz[seq(2,k,2)] <- 0
+    ssqswz <- as.numeric(t(swz)%*%swz)
 
     taperedData <- dw*timeSeries
     
@@ -179,7 +192,7 @@ spec.mtm <- function(timeSeries,
     paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))
     cft <- mvfft(paddedTaperedData)
     cft <- cft[(1+offSet):(nFreqs+offSet),]
-    sa <- abs(cft)**2
+    sa <- abs(cft)^2
     
     resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
 
@@ -236,7 +249,10 @@ spec.mtm <- function(timeSeries,
                       Ftest=ftestRes$F,
                       dofs=adaptive$dofs,
                       nw=nw,
-                      k=k)
+                      k=k,
+                      deltaT=deltaT,
+                      dtUnits=dtUnits,
+                      taper="dpss")
 
     spec.out <- list(origin.n=n,
                      method="Multitaper Spectral Estimate",
@@ -286,6 +302,7 @@ spec.mtm <- function(timeSeries,
                           returnZeroFreq=TRUE,
                           n, 
                           deltaT, 
+                          dtUnits,
                           sigma2,
                           series=series,
                           maxAdaptiveIterations,
@@ -304,7 +321,7 @@ spec.mtm <- function(timeSeries,
     }
 
     # returnZeroFreq forced to TRUE, offset = 0
-    # ** sine tapers produce nFFT/4 unique results; need to scale nFFT and nFreqs accordingly
+    # NOTE: sine tapers produce nFFT/4 unique results; need to scale nFFT and nFreqs accordingly
     nFFT <- nFFT*2
     nFreqs <- nFFT %/% 4 + as.numeric(returnZeroFreq)
     offSet <- if(returnZeroFreq) 0 else 1 
@@ -348,6 +365,14 @@ spec.mtm <- function(timeSeries,
     specFinal <- const*spec
 
     ## set up return object
+
+    if(sineAdaptive) { 
+      method = "Sine-Taper Multitaper Spectrum (adaptive)"
+    } else {
+      method = paste("Sine-Taper Multitaper Spectrum (k=",k,")",sep="")
+    }
+    
+
     auxiliary <- list(dpss=dpssIN,
                       eigenCoefs=NULL,
                       eigenCoefWt=NULL,
@@ -357,10 +382,13 @@ spec.mtm <- function(timeSeries,
                       Ftest=NULL,
                       dofs=dofs,
                       nw=NULL,
-                      k=k)
+                      k=k,
+                      deltaT=deltaT,
+                      dtUnits=dtUnits,
+                      taper="sine")
 
     spec.out <- list(origin.n=n,
-                     method="Sine Multitaper Spectral Estimate",
+                     method=method,
                      pad= nFFT - n,
                      spec=specFinal,
                      spec = NULL,
@@ -405,11 +433,12 @@ centre <- function(x, nw=NULL, k=NULL, deltaT=NULL, trim=0) {
         dw <- dpssRes$v*sqrt(deltaT)
         ev <- dpssRes$eigen
         swz <- apply(dw, 2, sum)
-        ## zero swz where theoretically zero
-        swz[1:(k/2)*2] <- 0.0
-        ssqswz <- sum(swz**2)
+        ## zero swz where theoretically zero; odd tapers
+        swz[seq(2,k,2)] <- 0.0
+        ssqswz <- sum(swz^2)
         res <- .mweave(x, dw, swz,
                        n, k, ssqswz, deltaT)
+
         res <- x - res$cntr
     }
     return(res)
