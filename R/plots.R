@@ -69,21 +69,29 @@ plot.mtm <- function(x,
     deltaT <- x$mtm$deltaT
 
     # if the user has not set 'xlab' ... set it for them:
-    if(!exists("xlab")) {
+    if(!hasArg("xlab")) {
       if(!x$mtm$dtUnits == "default") {
         xlab <- paste("Frequency in cycles/",dtUnits,sep="") }
       else {
         xlab <- paste("Frequency")
       }
-    }
+    } 
 
     if(Ftest) {
+      if(!hasArg("xlab")) {
         .plotFtest(x,xlab=xlab,siglines=siglines,ftbase=ftbase, ...)
+      } else {
+        .plotFtest(x, siglines=siglines, ftbase=ftbase, ...)
+      }  
     } 
     else 
     { # plot spectrum only
       if(x$mtm$taper=="sine") {
-        plot.spec(x, xlab=xlab, sub=" ", ...)
+        if(!hasArg("xlab")) {
+          plot.spec(x, xlab=xlab, sub=" ", ...)
+        } else {
+          plot.spec(x, sub=" ", ...) 
+        }  
       }
       else { # case of taper=="dpss"
         nw <- x$mtm$nw
@@ -110,13 +118,21 @@ plot.mtm <- function(x,
               maxVal <- x$mtm$jk$maxVal
             }
           yRange <- c(minVal, maxVal)
-          plot.spec(x, xlab=xlab, sub=sub, ylim=yRange, ...)
+          if(!hasArg("xlab")) {
+            plot.spec(x, xlab=xlab, sub=sub, ylim=yRange, ...)
+          } else {
+            plot.spec(x, sub=sub, ylim=yRange, ...)
+          }  
           lines(x$freq, upperCI, lty=2, col=2)
           lines(x$freq, lowerCI, lty=2, col=3)
           }
         }
         else {
-          plot.spec(x, xlab=xlab, sub=sub, ...)
+          if(!hasArg("xlab")) {
+            plot.spec(x, xlab=xlab, sub=sub, ...) 
+          } else {
+            plot.spec(x, sub=sub, ...)
+          }
         } 
     } # end of dpss case
   } # spectrum plot end
