@@ -181,7 +181,18 @@ plot.mtm.coh <- function(x,
     lines(freqs, plotTRmsc[,1], lty=3, lwd=1)
     box()
     axis(1)
-    mtext("Frequency", side=1, line=3, cex=par()$cex)
+
+    # allow for user-settable xlabel, or unit display
+    if(!hasArg("xlab")) {
+      if(!x$mtm$dtUnits == "default") {
+        xlabText <- paste("Frequency in cycles/",dtUnits,sep="") }
+      else {
+        xlabText <- paste("Frequency")
+      }
+      mtext(xlabText, side=1, line=3, cex=par()$cex)
+    } else {
+      mtext(xlab, side=1, line=3, cex=par()$cex)
+    }
     TRmscTicks <- seq(0, max(plotTRmsc[,2]), .5)
     axis(2, at=TRmscTicks)
     mtext("Inverse Transform of MSC",
