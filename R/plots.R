@@ -27,6 +27,28 @@
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
 
+## FIX OVERWRITING XLAB, ETC.
+## myFunction <- function(...)
+## {
+##   # default settings
+##   settings = list(par1=10, par2=12)
+##   # if settings is supplied
+##   if(hasArg(settings)){
+##       suppliedSettings <- list(...)$settings
+##       matching <- intersect(names(settings),
+##                             names(suppliedSettings))
+##       settings[matching] <- suppliedSettings[matching]
+##       notMatching <- setdiff(names(suppliedSettings),
+##                              names(settings))
+##       if(length(notMatching)!=0) warning(paste("The
+##             following arguments are ignored: ", notMatching))
+##   }
+## 
+##   # function operations
+##   print(settings)
+## }
+
+
 ##################################################################
 ##
 ##  plot.mtm
@@ -146,7 +168,7 @@ plot.mtm.coh <- function(x,
     mtext("Frequency", side=1, line=3, cex=par()$cex)
     TRmscTicks <- seq(0, max(plotTRmsc[,2]), .5)
     axis(2, at=TRmscTicks)
-    mtext("Inverse Transform of Magnitude Squared Coherence",
+    mtext("Inverse Transform of MSC",
           side=2, line=2, cex=par()$cex)
 
     ##  outer MSC axis on the left
@@ -165,7 +187,7 @@ plot.mtm.coh <- function(x,
     lenLessThanMax <-  length(Qlvl)
     CDFT <- CDFT[1:lenLessThanMax]
     axis(4, at=TRQlvl, labels=CDFT);
-    mtext("Cumulative Distribution Function for Independent Data",
+    mtext("CDF for Independent Data",
           side=4, line=2, cex=par()$cex) 
 
     if(drawPercentLines == TRUE) {

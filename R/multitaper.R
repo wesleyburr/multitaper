@@ -64,12 +64,11 @@ spec.mtm <- function(timeSeries,
       warning("Time series is not a ts object. deltaT is not set, and frequency axes may be incorrect.")
       deltaT <- 1.0
       timeSeries <- as.double(as.ts(timeSeries))
-    } else if(!exists("deltaT")) {
-      deltaT <- 1
+    } else if(!is.ts(timeSeries)) {
       timeSeries <- as.double(as.ts(timeSeries))
     } else {
       deltaT <- deltat(timeSeries)
-      timeSeries <- as.double((timeSeries))
+      timeSeries <- as.double(timeSeries)
     }
     n <- length(timeSeries)
 
@@ -102,7 +101,7 @@ spec.mtm <- function(timeSeries,
     } else if(centre=="trimMean") {
       timeSeries <- centre(timeSeries, trim=0.10)
     }
-
+   
     if(taper=="dpss") { 
       mtm.obj <- .spec.mtm.dpss(timeSeries=timeSeries,
                      nw=nw, k=k, nFFT=nFFT, 
