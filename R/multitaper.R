@@ -519,10 +519,20 @@ mtm.coh <- function(mtm1, mtm2,
                     bias=double(nfreqs),
                     cx=complex(nordP2))
 
+    auxiliary <- list(nfreqs=mtm1$mtm$nFreqs,
+                      nFFT=mtm1$mtm$nFFT,
+                      nw=mtm1$mtm$nw,
+                      k=mtm1$mtm$k,
+                      deltaT=mtm1$mtm$deltaT,
+                      dtUnits=mtm1$mtm$dtUnits,
+                      taper=mtm1$mtm$taper
+                      )
+
+
     coh.out <- list(NTmsc=out$NTmsc, NTvar=out$NTvar,
                     msc=out$msc, nfreqs=mtm1$mtm$nfreqs,
                     freq=mtm1$freq, k=nord,
-                    ph=out$ph, phvar=out$phvar)
+                    ph=out$ph, phvar=out$phvar, mtm=auxiliary)
     class(coh.out) <- "mtm.coh"
     
     

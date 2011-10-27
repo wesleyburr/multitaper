@@ -119,6 +119,5 @@ dropFreqs.mtm.coh <- function(spec, minFreq, maxFreq) {
     spec.out$ph <- spec.out$ph[idx]
     spec.out$phvar <- spec.out$phvar[idx]
     spec.out$nfreqs <- sum(idx)
-
     spec.out
 }
