@@ -48,7 +48,7 @@ plot.mtm <- function(x,
 
     # if the user has not set 'xlab' ... set it for them:
     if(!hasArg("xlab")) {
-      if(!x$mtm$dtUnits == "default") {
+      if(!(x$mtm$dtUnits == "default")) {
         xlab <- paste("Frequency in cycles/",dtUnits,sep="") }
       else {
         xlab <- paste("Frequency")
@@ -162,7 +162,7 @@ plot.mtm.coh <- function(x,
 
     # allow for user-settable xlabel, or unit display
     if(!hasArg("xlab")) {
-      if(!x$mtm$dtUnits == "default") {
+      if(!(x$mtm$dtUnits == "default")) {
         xlabText <- paste("Frequency in cycles/",dtUnits,sep="") }
       else {
         xlabText <- paste("Frequency")
