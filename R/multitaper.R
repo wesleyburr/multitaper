@@ -27,6 +27,14 @@
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
 
+
+##############################################################
+##
+##  spec.mtm
+##
+##  Wrapper routine for .spec.mtm.dpss and .spec.mtm.sine.
+##
+##############################################################
 spec.mtm <- function(timeSeries,
                      nw=5.0,
                      k=10,
@@ -53,14 +61,20 @@ spec.mtm <- function(timeSeries,
     centre <- match.arg(centre,c("Slepian","arithMean","trimMean","none"))
     dtUnits <- match.arg(dtUnits,c("second","hour","day","month","year","default"))
 
-    if( (taper=="sine") && jackknife) { stop("Cannot jackknife over sine tapers.")}
-    if( (taper=="sine") && Ftest) { stop("Cannot compute Ftest over sine tapers.")}
+    if( (taper=="sine") && jackknife) { 
+      warning("Cannot jackknife over sine tapers.")
+      jackknife <- FALSE
+    }
+    if( (taper=="sine") && Ftest) { 
+      warning("Cannot compute Ftest over sine tapers.")
+      Ftest <- FALSE
+    }
     if( (taper=="sine") && !returnZeroFreq) { returnZeroFreq = TRUE; 
                                               warning("returnZeroFreq must be TRUE for sine taper option.") }
     if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
 
     # warning for deltaT missing: makes all frequency plots incorrect
-    if(!is.ts(timeSeries) && !exists("deltaT")) {
+    if(!is.ts(timeSeries) && !hasArg("deltaT")) {
       warning("Time series is not a ts object. deltaT is not set, and frequency axes may be incorrect.")
       deltaT <- 1.0
       timeSeries <- as.double(as.ts(timeSeries))

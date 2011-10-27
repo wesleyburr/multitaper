@@ -27,28 +27,6 @@
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
 
-## FIX OVERWRITING XLAB, ETC.
-## myFunction <- function(...)
-## {
-##   # default settings
-##   settings = list(par1=10, par2=12)
-##   # if settings is supplied
-##   if(hasArg(settings)){
-##       suppliedSettings <- list(...)$settings
-##       matching <- intersect(names(settings),
-##                             names(suppliedSettings))
-##       settings[matching] <- suppliedSettings[matching]
-##       notMatching <- setdiff(names(suppliedSettings),
-##                              names(settings))
-##       if(length(notMatching)!=0) warning(paste("The
-##             following arguments are ignored: ", notMatching))
-##   }
-## 
-##   # function operations
-##   print(settings)
-## }
-
-
 ##################################################################
 ##
 ##  plot.mtm
