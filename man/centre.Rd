@@ -16,7 +16,7 @@
 %     GNU General Public License for more details.
 
 %     You should have received a copy of the GNU General Public License
-%     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+%     along with multitaper.  If not, see <http://www.gnu.org/licenses/>.
 
 %     If you wish to report bugs please contact the author. 
 %     karim.rahim@gmail.com
@@ -57,7 +57,7 @@ centre(x, nw = NULL, k = NULL, deltaT = NULL, trim = 0)
   Volume \bold{57}, pp. 1371--1430.
 }
 \examples{
-data(willamette)
-centredWDat <- centre(willamette, nw=4, k=8, deltaT=1)
+##data(willamette)
+##centredWDat <- centre(willamette, nw=4, k=8, deltaT=1)
 }
 \keyword{math}

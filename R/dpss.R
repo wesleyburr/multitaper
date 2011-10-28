@@ -1,28 +1,30 @@
 ##     The multitaper R package
 ##     Multitaper and spectral analysis package for R
-##     Copyright (C) 2011 Karim Rahim 
-##
-##     Written by Karim Rahim, with code from David J. Thomson.
+##     Copyright (C) 2011 Karim Rahim
+
+##     Written by Karim Rahim based on versions of fortran code writen by David
+##     Thomson and Lisp code by Percival and Walden.
+
 ##
 ##     This file is part of the multitaper package for R.
 ##     http://cran.r-project.org/web/packages/multitaper/index.html
-## 
-##     The multitaper package is free software: you can redistribute it and 
-##     or modify it under the terms of the GNU General Public License as 
-##     published by the Free Software Foundation, either version 2 of the 
-##     License, or any later version.
-##
+##     This file is part of the multitaper package for R.
+
+##     The multitaper package is free software: you can redistribute it and
+##     or modify
+##     it under the terms of the GNU General Public License as published by
+##     the Free Software Foundation, either version 2 of the License, or
+##     any later version.
+
 ##     The multitaper package is distributed in the hope that it will be 
 ##     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
 ##     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##     GNU General Public License for more details.
-##
+
 ##     You should have received a copy of the GNU General Public License
-##     along with multitaper.  If not, see <http://www.gnu.org/licenses/>.
-##
-##     If you wish to report bugs please contact the author:
-## 
-##     Karim Rahim
+##     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+
+##     If you wish to report bugs please contact the author. 
 ##     karim.rahim@gmail.com
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
@@ -33,8 +35,8 @@
 ## 
 ##  Generates k orthogonal discrete prolate spheroidal
 ##  sequences (dpss) using the tridiagonal method. See
-##  Thomson, D.J., Spectrum Estimation and Harmonic Analysis,
-##  Proceedings of the IEEE, 1982. 
+##  Slepian (1978) page 1379 and Percival and Walden
+##  chapter 8.4
 ##
 ##########################################################
 
@@ -42,7 +44,10 @@ dpss <- function(n, k, nw, returnEigenvalues=TRUE) {
 
     stopifnot(n >= 1, nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw) 
         
-    ##eigen is of length k for use by LAPACK functions.
+    ##eigen is of length for use by lapack functoins.
+    ## this will use lapack functions in place of the
+    ## eispack functions referenced in Percival and Waldern
+    
     out <- .Fortran("dpss", as.integer(n), as.integer(k),
               as.double(nw), 
               v=double(n*k), eigen=double(k),
@@ -65,10 +70,13 @@ dpss <- function(n, k, nw, returnEigenvalues=TRUE) {
 ##
 ##  dpssToEigenvalues
 ## 
-##  Given a set of dpss tapers, find the eigenvalues after
-##  the fact. 
+##  Given a set of dpss tapers, find the eigenvalues corresponding
+## to the generated dpss's
+##
+##  See Percival and Walden exercise 8.4
 ##
 ##########################################################
+
 
 dpssToEigenvalues <- function(v, nw) {
     v <- as.matrix(v)

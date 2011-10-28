@@ -23,31 +23,17 @@
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-\name{dpssToEigenvalues}
-\alias{dpssToEigenvalues}
-\title{Compute eigenvalues for the Discrete Prolate Spheroidal Sequences
-(dpss)}
+\name{centralEnglandDailyTemp}
+\alias{centralEnglandDailyTemp}
+\title{Central England Daily temperature time series}
 \description{
-   Compute eigenvalues for the Discrete Prolate Spheroidal Sequences. The
-   method used here is described in chapter 8 of Percival and Walden (1993).
+  Central England daily temperature time serie. The data set represents
+  daily CET values expressed as a tenth of a degree. The data set
+  contains temperatures for the years 1772 through 2010.  This dataset was
+  retrieved from the Met office at Hadley on Sept 22, 2011.
 }
-\usage{
-dpssToEigenvalues(v, nw)
-}
-\arguments{
-  \item{v}{v a matrix of dpss, with each column representing a dpss of a
-    different order.}
-  \item{nw}{nw a positive double precision number, the time-bandwidth
-    parameter.}
-}
-\references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
-}
-\examples{
-## dpss(10,4,4)
-dpss1 <- dpss(10,4,4, returnEigenvalues=FALSE)$v
-dpssToEigenvalues(dpss1,4)
-}
-\keyword{math}
+\usage{centralEnglandDailyTemp}
+\format{  A data frame indicating the year, month, day, and temperature from
+     observed in Central England. This data-set contains 872938
+     observations.}
+\keyword{datasets}

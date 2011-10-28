@@ -36,8 +36,8 @@
 ##
 ##############################################################
 spec.mtm <- function(timeSeries,
-                     nw=5.0,
-                     k=10,
+                     nw=4.0,
+                     k=8,
                      nFFT="default", 
                      taper=c("dpss"),
                      centre=c("Slepian"),
@@ -88,6 +88,9 @@ spec.mtm <- function(timeSeries,
 
     if(taper=="dpss") {
       stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw, n > 8)
+      if (nw/n > 0.5) { 
+          stop("half-bandwidth parameter (w) is greater than 1/2")
+      }
       if(k==1) {
         Ftest=FALSE
         jackknife=FALSE
@@ -434,6 +437,9 @@ centre <- function(x, nw=NULL, k=NULL, deltaT=NULL, trim=0) {
             warning(paste("Ignoring trim =", trim))
         }
         stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw)
+        if (nw/length(x) > 0.5) { 
+            stop("half-bandwidth parameter (w) is greater than 1/2")
+        }
         if(is.null(deltaT)) {
             if(is.ts(x)) {
                 deltaT <- deltat(ts)
@@ -517,7 +523,8 @@ mtm.coh <- function(mtm1, mtm2,
                     s1=double(nordP2), s2=double(nordP2),
                     jkmsc=double(nordP2), TRmsc=double(nordP2),
                     bias=double(nfreqs),
-                    cx=complex(nordP2))
+                    cx=complex(nordP2),
+                    PACKAGE="multitaper")
 
     auxiliary <- list(nfreqs=mtm1$mtm$nFreqs,
                       nFFT=mtm1$mtm$nFFT,
