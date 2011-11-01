@@ -1,24 +1,28 @@
 ##     The multitaper R package
 ##     Multitaper and spectral analysis package for R
 ##     Copyright (C) 2011 Karim Rahim 
-
+##
+##     Written by Karim Rahim and Wesley Burr.
+## 
 ##     This file is part of the multitaper package for R.
-
-##     The multitaper package is free software: you can redistribute it and
-##     or modify
-##     it under the terms of the GNU General Public License as published by
-##     the Free Software Foundation, either version 2 of the License, or
-##     any later version.
-
+##     http://cran.r-project.org/web/packages/multitaper/index.html
+## 
+##     The multitaper package is free software: you can redistribute it and 
+##     or modify it under the terms of the GNU General Public License as 
+##     published by the Free Software Foundation, either version 2 of the 
+##     License, or any later version.
+##
 ##     The multitaper package is distributed in the hope that it will be 
 ##     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
 ##     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##     GNU General Public License for more details.
-
+##
 ##     You should have received a copy of the GNU General Public License
 ##     along with multitaper.  If not, see <http://www.gnu.org/licenses/>.
-
-##     If you wish to report bugs please contact the author. 
+##
+##     If you wish to report bugs please contact the author:
+## 
+##     Karim Rahim
 ##     karim.rahim@gmail.com
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
@@ -35,25 +39,19 @@
 }
 
 .HF4mp1 <- function(cft, swz, nord, ssqswz) {
-    
-    ## vectorized when there are none to skip... 
-    ## Dave's [82] mu hat of f in eqn (13.5)
-    ## cmv   Complex Mean Value,
-    ## Code based on two sources.  Percival and Walden
-    ## lisp sources and Thomson's fortran code.
-    ##
+   
+    ## Vectorized from original F77 code
+    ## Equation (13.5) of:
+    ##   Thomson, D.J. Spectrum Estimation and Harmonic Analysis,
+    ##   Proceedings of the IEEE, 1982.
+
     cmv <- (cft %*% swz) /ssqswz
-    ssqave <-  abs(cmv)**2*ssqswz
-    ##cftEst <- t(swz %*% t(cmv))
+    ssqave <-  (Mod(cmv)^2)*ssqswz
     swz <- as.matrix(swz)
-    ##removed extra crossproduct 
-    ##cftEst <- t(tcrossprod(swz,cmv))
     
-    ## ssqres <- apply( abs(cft - (cmv %*% t(swz)))**2,
-    ##                 1, sum)
-    ssqres <- apply( abs(cft - tcrossprod(cmv, swz))^2, 1, sum)
-    
-    F_<- Re((nord-1)*ssqave/ssqres)
+    ssqres <- apply( Mod(cft - (cmv %*% t(swz)))^2,
+                    1, sum)
+    F_<- (nord-1)*ssqave/ssqres
     
     return(list(Ftest=F_,cmv=cmv))
 }
@@ -103,3 +101,44 @@
                 mxiter=out$mxiter,
                 varjk=out$varjk, bcjk=out$bcjk, sjk=out$sjk))
 }
+
+.qsF <- function(nFreqs,nFFT,k,cft,useAdapt,kadapt) {
+
+    out <- .Fortran("quickSineF", as.integer(nFreqs),
+                    as.integer(nFFT), as.integer(k),
+                    cft=cft, as.logical(useAdapt),
+                    kadapt=matrix(data=as.double(kadapt),nrow=nFreqs,ncol=1),
+                    spec=matrix(data=double(nFreqs),nrow=nFreqs,ncol=1),
+                    PACKAGE='multitaper')
+
+    return(list(spec=out$spec))
+}
+
+.cF <- function(n,v) {
+
+  out <- .Fortran("curbF",as.integer(n),as.double(v),PACKAGE='multitaper')
+  opt <- out[[2]]
+  return(list(opt=opt))
+}
+
+.nF <- function(n,i1,i2,s) {
+
+   out <- .Fortran("northF",as.integer(n),as.integer(i1),
+                   as.integer(i2),sx=matrix(data=as.double(s),nrow=n,ncol=1),
+                   ds=double(1), dds=double(1),
+                   PACKAGE='multitaper')
+
+   return(list(ds=out$ds, dds=out$dds))
+}
+
+.adaptSine <- function(ntimes, k, nFreqs, sx, nFFT, cft, df, fact) {
+
+    out <- .Fortran("adapt",as.integer(ntimes),as.integer(k),
+                    as.integer(nFreqs),sx=matrix(data=as.double(sx),nrow=nFreqs,ncol=1),
+                    as.integer(nFFT), cft=cft, as.double(df),
+                    kopt=double(nFreqs),fact=as.double(fact),PACKAGE='multitaper')
+
+    return(list(spec=out$sx,kadapt=out$kopt))
+
+}
+
