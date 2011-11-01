@@ -163,7 +163,7 @@ plot.mtm.coh <- function(x,
     # allow for user-settable xlabel, or unit display
     if(!hasArg("xlab")) {
       if(!(x$mtm$dtUnits == "default")) {
-        xlabText <- paste("Frequency in cycles/",dtUnits,sep="") }
+        xlabText <- paste("Frequency in cycles/",x$mtm$dtUnits,sep="") }
       else {
         xlabText <- paste("Frequency")
       }
