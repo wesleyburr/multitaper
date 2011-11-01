@@ -34,6 +34,9 @@
 ##
 ##  Wrapper routine for .spec.mtm.dpss and .spec.mtm.sine.
 ##
+##  Can be broken by the user attempting to pass in things like
+##  deltaT=? or n=?.
+##
 ##############################################################
 spec.mtm <- function(timeSeries,
                      nw=4.0,
@@ -54,6 +57,7 @@ spec.mtm <- function(timeSeries,
                      sineSmoothFact=0.2,
                      dtUnits=c("default"),
                      periodAxis=FALSE,
+                     dT=NULL,
                      ...) {
 
     series <- deparse(substitute(timeSeries))
@@ -74,17 +78,18 @@ spec.mtm <- function(timeSeries,
     if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
 
     # warning for deltaT missing: makes all frequency plots incorrect
-    if(!is.ts(timeSeries) && !hasArg("deltaT")) {
+    if(!is.ts(timeSeries) && !hasArg("dT")) {
       warning("Time series is not a ts object. deltaT is not set, and frequency axes may be incorrect.")
-      deltaT <- 1.0
-      timeSeries <- as.double(as.ts(timeSeries))
-    } else if(!is.ts(timeSeries)) {
-      timeSeries <- as.double(as.ts(timeSeries))
+    }
+    if(!is.ts(timeSeries)) {
+      timeSeries <- as.double(as.ts(timeSeries))    
     } else {
-      if(!hasArg("deltaT")) {
-        deltaT <- deltat(timeSeries)
-      }
       timeSeries <- as.double(timeSeries)
+    }
+    if(is.null(dT)) {
+      deltaT <- deltat(timeSeries) 
+    } else {
+      deltaT <- dT
     }
     n <- length(timeSeries)
 
@@ -176,6 +181,7 @@ spec.mtm <- function(timeSeries,
     dw <- NULL
     ev <- NULL
     receivedDW <- TRUE
+
     if(!.is.dpss(dpssIN)) {
       receivedDW <- FALSE
       dpssIN <- dpss(n, k, nw=nw, returnEigenvalues=TRUE)
@@ -204,7 +210,7 @@ spec.mtm <- function(timeSeries,
     swz[seq(2,k,2)] <- 0
     ssqswz <- as.numeric(t(swz)%*%swz)
 
-    taperedData <- dw*timeSeries
+    taperedData <- dw * timeSeries
     
     nPadLen <- nFFT - n
     paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))

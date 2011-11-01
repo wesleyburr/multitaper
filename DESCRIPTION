@@ -4,7 +4,7 @@ Date: 2011-11-01
 Title: Multitaper Spectral Analysis
 Author: Karim Rahim <karim.rahim@gmail.com>
 Maintainer:  Karim Rahim <karim.rahim@gmail.com>
-Depends: R (>= 2.13.2)
+Depends: R (>= 2.13.0)
 Suggests: 
 Description: Generates Discrete Prolate Spheroidal Sequences, provides functions and utilities to perform multitaper spectral analysis and general spectral analysis
 License: GPL (>= 2)
