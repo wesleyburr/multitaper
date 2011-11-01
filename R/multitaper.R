@@ -127,7 +127,11 @@ spec.mtm <- function(timeSeries,
     ## convert time-series to zero-mean by one of three methods, if set; default is Slepian
 
     if(centre=="Slepian") {
-      timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
+      if(taper=="dpss") {
+        timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
+      } else {  # edge case: sine taper, set initial k, but too high for default nw=4.0
+        timeSeries <- centre(timeSeries, nw=5.0, k=8, deltaT=deltaT)
+      }
     } else if(centre=="arithMean") {
       timeSeries <- centre(timeSeries, trim=0) 
     } else if(centre=="trimMean") {
