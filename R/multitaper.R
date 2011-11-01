@@ -81,7 +81,9 @@ spec.mtm <- function(timeSeries,
     } else if(!is.ts(timeSeries)) {
       timeSeries <- as.double(as.ts(timeSeries))
     } else {
-      deltaT <- deltat(timeSeries)
+      if(!hasArg("deltaT")) {
+        deltaT <- deltat(timeSeries)
+      }
       timeSeries <- as.double(timeSeries)
     }
     n <- length(timeSeries)
