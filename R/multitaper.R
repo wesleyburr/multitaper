@@ -77,17 +77,25 @@ spec.mtm <- function(timeSeries,
                                               warning("returnZeroFreq must be TRUE for sine taper option.") }
     if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
 
+    dtTmp <- NULL
     # warning for deltaT missing: makes all frequency plots incorrect
-    if(!is.ts(timeSeries) && !hasArg("dT")) {
-      warning("Time series is not a ts object. deltaT is not set, and frequency axes may be incorrect.")
+    if(!is.ts(timeSeries) && is.null(dT)) {
+      warning("Time series is not a ts object and dT is not set. Frequency array and axes may be incorrect.")
     }
     if(!is.ts(timeSeries)) {
       timeSeries <- as.double(as.ts(timeSeries))    
     } else {
+      # Order matters here, because as.double breaks the ts() class
+      dtTmp <- deltat(timeSeries)
       timeSeries <- as.double(timeSeries)
     }
+
     if(is.null(dT)) {
-      deltaT <- deltat(timeSeries) 
+      if(is.null(dtTmp)) {
+        deltaT <- 1.0
+      } else {
+        deltaT <- dtTmp
+      }
     } else {
       deltaT <- dT
     }
