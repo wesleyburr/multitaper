@@ -1,32 +1,35 @@
-!     The multitaper R package
-!     Multitaper and spectral analysis package for R
-!     Copyright (C) 2010 Karim Rahim 
+!!     The multitaper R package
+!!     Multitaper and spectral analysis package for R
+!!     Copyright (C) 2011 Karim Rahim 
+!!
+!!     This file is part of the multitaper package for R.
+!!
+!!     The multitaper package is free software: you can redistribute it and
+!!     or modify
+!!     it under the terms of the GNU General Public License as published by
+!!     the Free Software Foundation, either version 2 of the License, or
+!!     any later version.
+!!
+!!     The multitaper package is distributed in the hope that it will be 
+!!     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+!!     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!     GNU General Public License for more details.
+!!
+!!     You should have received a copy of the GNU General Public License
+!!     along with multitper.  If not, see <http://www.gnu.org/licenses/>.
+!!
+!!     If you wish to report bugs please contact the author. 
+!!     karim.rahim@gmail.com
+!!     112 Jeffery Hall, Queen's University, Kingston Ontario
+!!     Canada, K7L 3N6
 
-!     This file is part of the multitaper package for R.
 
-!     The multitaper package is free software: you can redistribute it and
-!     or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 2 of the License, or
-!     any later version.
-
-!     The multitaper package is distributed in the hope that it will be 
-!     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
-!     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-!     GNU General Public License for more details.
-
-!     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-
-!     If you wish to report bugs please contact the author. 
-!     karim.rahim@gmail.com
-!     112 Jeffery Hall, Queen's University, Kingston Ontario
-!     Canada, K7L 3N6
-
-
-!dpss.f90 calculate dpss's using lapack dstebz and dstein
-! using the tridiagonal method.
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+!!  dpss.f90 calculate dpss's using lapack dstebz and dstein
+!!  using the tridiagonal method
+!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine dpss (n, k, nw, v, ev)
   ! Calculate dpss using tridiagonal formulation given in 
   ! Percival and Walden 1993 chapter 9 using Lapack functions
@@ -171,9 +174,9 @@ subroutine dpss (n, k, nw, v, ev)
 
   do j = 1 , k
      sqrtsumsq = dsqrt(sum( v(:,j)**2 ))
-     ! set polarity to Slepian 78 
+     ! set polarity to that from Slepian 78 
      ! differs from Percival and Walden
-     ! dpss slope up at centre, this  agrees with 
+     ! dpss slope up at centre, this agrees with 
      ! Thomson 82
      if(v(iTest,j) < 0.0d0) then
         sqrtsumsq = -1.0d0 * sqrtsumsq
@@ -186,6 +189,12 @@ subroutine dpss (n, k, nw, v, ev)
   deallocate(blockIntMem)
   
 end subroutine dpss
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!
+!  tridiagMatrixEigen
+!
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 subroutine tridiagMatrixEigen(n, k, d, e, v, ldv, ev, &
      abstol, blockIntMem, work)
