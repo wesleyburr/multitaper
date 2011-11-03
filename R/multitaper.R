@@ -34,9 +34,6 @@
 ##
 ##  Wrapper routine for .spec.mtm.dpss and .spec.mtm.sine.
 ##
-##  Can be broken by the user attempting to pass in things like
-##  deltaT=? or n=?.
-##
 ##############################################################
 spec.mtm <- function(timeSeries,
                      nw=4.0,

@@ -74,8 +74,6 @@ plot.mtm <- function(x,
       else { # case of taper=="dpss"
         nw <- x$mtm$nw
         k <- x$mtm$k
-        deltaT <- x$mtm$deltaT
-        dtUnits <- x$mtm$dtUnits
         sub <- paste("(NW = ", nw, " K = ", k,")", sep="")
         log <- match.call(expand.dots = )$log
         if(jackknife) {
