@@ -2,15 +2,14 @@
 %     Multitaper and spectral analysis package for R
 %     Copyright (C) 2011 Karim Rahim 
 %
-%     This file is part of the multitaper package for R.
-%
 %     Written by Karim Rahim and Wesley Burr.
 %
+%     This file is part of the multitaper package for R.
+%
 %     The multitaper package is free software: you can redistribute it and
-%     or modify
-%     it under the terms of the GNU General Public License as published by
-%     the Free Software Foundation, either version 2 of the License, or
-%     any later version.
+%     or modify it under the terms of the GNU General Public License as 
+%     published by the Free Software Foundation, either version 2 of the 
+%     License, or any later version.
 %
 %     The multitaper package is distributed in the hope that it will be 
 %     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 

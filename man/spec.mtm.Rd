@@ -36,7 +36,7 @@ spec.mtm(timeSeries, nw=4.0, k=8, nFFT="default", taper=c("dpss"), centre=c("Sle
                      dpssIN=NULL, returnZeroFreq=TRUE, Ftest=FALSE, jackknife=FALSE,
                      jkCIProb=.95, maxAdaptiveIterations=100, plot=TRUE, na.action=na.fail,
                      returnInternals=FALSE, sineAdaptive=FALSE, sineSmoothFact=0.2,
-                     dtUnits=c("default"), periodAxis=FALSE, dT=NULL, ...) {
+                     dtUnits=c("default"), periodAxis=FALSE, dT=NULL, ...) 
 }
 \arguments{
   \item{timeSeries}{A time series of equally spaced data, this can be
@@ -98,11 +98,18 @@ Minimum bias multiple taper spectral estimation. \emph{IEEE Transactions on Sign
 Volume \bold{43}, Number 1, pp. 188--195.
 }
 \examples{
-# default behaviour, dpss tapers
+# default behaviour, dpss tapers; dT and dtUnits set to ensure axis accuracy
 data(willamette)
-spec.mtm(willamette, nw=4, k=8)
-spec.mtm(willamette, nw=4, k=8, nFFT=2048)
+spec.mtm(willamette, nw=4.0, k=8, dT=1.0, dtUnits="month")
+spec.mtm(willamette, nw=4.0, k=8, nFFT=2048, dT=1.0, dtUnits="month")
 
-#more examples here
+# if you have a ts object, you can skip the dT and dtUnits parameters
+will.ts <- ts(data=willamette, start=1950.75, freq=12)
+spec.mtm(will.ts, nw=4.0, k=8)
+
+# using Sine Tapers
+spec.mtm(will.ts, k=10, taper="sine", sineAdaptive=FALSE)
+spec.mtm(will.ts, k=10, taper="sine", sineAdaptive=TRUE, 
+         maxAdaptiveIterations=100, sineSmoothFact=0.05)
 }
 \keyword{multitaper}
