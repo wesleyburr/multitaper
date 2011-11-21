@@ -53,7 +53,6 @@ spec.mtm <- function(timeSeries,
                      sineAdaptive=FALSE,
                      sineSmoothFact=0.2,
                      dtUnits=c("default"),
-                     periodAxis=FALSE,
                      dT=NULL,
                      ...) {
 
