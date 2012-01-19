@@ -434,6 +434,117 @@ spec.mtm <- function(timeSeries,
     return(spec.out);
 }
 
+##############################################################
+##
+##  spec.mtm.c
+##
+##  Computes multitaper spectrum using Slepian tapers, for 
+##  complex data. Missing many features of other functions 
+##  (for now!).
+##
+##############################################################
+spec.mtm.c <- function(timeSeries,
+                     nw=4.0,
+                     k=8,
+                     nFFT="default", 
+                     plot=TRUE,
+                     na.action=na.fail,
+                     returnInternals=TRUE,
+                     dtUnits=c("default"),
+                     dT=NULL,
+                     ...) {
+
+    if(!is.complex(timeSeries)) { stop("spec.mtm.c requires complex data") }
+
+    if(is.null(dT)) {
+      deltaT <- 1.0
+    } else {
+      deltaT <- dT
+    }
+
+    n <- length(timeSeries)
+
+    dpssIN <- dpss(n, k, nw=nw, returnEigenvalues=TRUE)
+    dw <- dpssIN$v*sqrt(deltaT)
+    ev <- dpssIN$eigen 
+
+    # set nFFT
+    if(nFFT == "default") {
+        nFFT <- 2* 2^ceiling(log2(n))
+    } else {
+        stopifnot(is.numeric(nFFT))
+    }
+ 
+    freqs <- (-nFFT/2):(nFFT/2-1)
+    nFreqs <- length(freqs)
+
+    # center data
+    real.c <- centre(Re(timeSeries),nw=nw,k=k,deltaT=deltaT)
+    imag.c <- centre(Im(timeSeries),nw=nw,k=k,deltaT=deltaT)
+    timeSeries <- complex(real=real.c,imaginary=imag.c)
+
+    # Note that the frequency axis is set by default to unit-less
+    # scaling as 0 through 0.5 cycles/period. The user parameter
+    # dtUnits modifies this scaling in the plot.mtm function.
+    scaleFreq <- 1 / as.double(nFFT * deltaT)
+    
+    swz <- NULL ## Percival and Walden H0
+    ssqswz <- NULL
+    swz <- apply(dw, 2, sum)
+    swz[seq(2,k,2)] <- 0
+    ssqswz <- as.numeric(t(swz)%*%swz)
+
+#   this is the first part where there is a difference
+    taperedData <- dw * timeSeries
+    
+    nPadLen <- nFFT - n
+    paddedTaperedData <- rbind(taperedData, matrix(complex(0,0), nPadLen, k))
+    cft <- mvfft(paddedTaperedData)
+    sa <- abs(cft)^2
+    
+    resultFreqs <- freqs*scaleFreq 
+
+    auxiliary <- list(dpss=dpssIN,
+                      eigenCoefs=cft,
+                      eigenCoefWt=NULL,
+                      nfreqs=nFreqs,
+                      nFFT=nFFT,
+                      jk=jk,
+                      Ftest=NULL,
+                      cmv=NULL,
+                      dofs=NULL,
+                      nw=nw,
+                      k=k,
+                      deltaT=deltaT,
+                      dtUnits=dtUnits,
+                      taper="dpss")
+
+    spec.out <- list(origin.n=n,
+                     method="Multitaper Spectral Estimate",
+                     pad= nFFT - n,
+                     spec=sa,
+                     freq=resultFreqs,
+                     series=timeSeries,
+                     mtm=auxiliary)
+
+    class(spec.out) <- c("mtm", "spec")
+    
+    if(plot) {
+        plot.mtm(spec.out, ...)
+        return(invisible(spec.out))
+    } else {
+        return(spec.out)
+    }
+}
+
+
+
+
+
+
+
+
+
 #########################################################################
 ##
 ## centre

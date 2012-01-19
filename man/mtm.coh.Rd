@@ -56,10 +56,10 @@ Percival, D.B. and Walden, A.T. (1993)
 Cambridge University Press. 
 }
 \examples{
-data(cet.mth)
+data(HadCRUTnh)
 data(mlco2)
-spec1 <- spec.mtm(cet.mth, nw=5.0, k=8, plot=F, returnInternals=T, dtUnits="month", dT=1.0)
-spec2 <- spec.mtm(mlco2, nw=5.0, k=8, plot=F, returnInternals=T, dtUnits="month", dT=1.0)
+spec1 <- spec.mtm(HadCRUTnh, nw=5.0, k=8, plot=FALSE, returnInternals=TRUE, dtUnits="month", dT=1.0)
+spec2 <- spec.mtm(mlco2, nw=5.0, k=8, plot=FALSE, returnInternals=TRUE, dtUnits="month", dT=1.0)
 mtm.coh(spec1, spec2)
 }
 \keyword{multitaper}

@@ -58,7 +58,7 @@ plot(mtm2)
 plot(dropFreqs(mtm1, 0.1, 0.4))
 
 # using sine tapers
-mtm.sine <- spec.mtm(willamette, k=10, plot=F, dT=1.0, dtUnits="month", 
+mtm.sine <- spec.mtm(willamette, k=10, plot=FALSE, dT=1.0, dtUnits="month", 
                      taper="sine", sineAdaptive=FALSE, sineSmoothFact=0.05)
 plot(dropFreqs(mtm.sine, 0.1, 0.4))                     
 }

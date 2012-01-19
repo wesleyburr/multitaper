@@ -36,7 +36,7 @@ spec.mtm(timeSeries, nw=4.0, k=8, nFFT="default", taper=c("dpss"), centre=c("Sle
                      dpssIN=NULL, returnZeroFreq=TRUE, Ftest=FALSE, jackknife=FALSE,
                      jkCIProb=.95, maxAdaptiveIterations=100, plot=TRUE, na.action=na.fail,
                      returnInternals=FALSE, sineAdaptive=FALSE, sineSmoothFact=0.2,
-                     dtUnits=c("default"), periodAxis=FALSE, dT=NULL, ...) 
+                     dtUnits=c("default"), dT=NULL, ...) 
 }
 \arguments{
   \item{timeSeries}{A time series of equally spaced data, this can be
@@ -80,7 +80,8 @@ require less than 100 iterations.}
   can be set between 0.01 and 0.5. Lower values indicate smaller amounts of smoothing.}
   \item{dtUnits}{Allows indication of the units of delta-t for accurate frequency axis
   labels.}
-  \item{periodAxis}{Allows switching of frequency axis to alternative of period display.}
+  \item{dT}{Time step for observations. If not in seconds, dtUnits should be set to indicate
+  the proper units for plot labels.}
   \item{...}{Additional parameters, such as xaxs="i" which are passed to
     the plotting function. Not all parameters are supported.} 
 }
