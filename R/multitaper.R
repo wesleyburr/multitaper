@@ -509,7 +509,7 @@ spec.mtm.c <- function(timeSeries,
                       eigenCoefWt=NULL,
                       nfreqs=nFreqs,
                       nFFT=nFFT,
-                      jk=jk,
+                      jk=NULL,
                       Ftest=NULL,
                       cmv=NULL,
                       dofs=NULL,
@@ -536,13 +536,6 @@ spec.mtm.c <- function(timeSeries,
         return(spec.out)
     }
 }
-
-
-
-
-
-
-
 
 
 #########################################################################
