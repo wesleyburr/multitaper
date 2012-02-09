@@ -1,35 +1,35 @@
-!!     The multitaper R package
-!!     Multitaper and spectral analysis package for R
-!!     Copyright (C) 2011 Karim Rahim 
-!!
-!!     This file is part of the multitaper package for R.
-!!
-!!     The multitaper package is free software: you can redistribute it and
-!!     or modify
-!!     it under the terms of the GNU General Public License as published by
-!!     the Free Software Foundation, either version 2 of the License, or
-!!     any later version.
-!!
-!!     The multitaper package is distributed in the hope that it will be 
-!!     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
-!!     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-!!     GNU General Public License for more details.
-!!
-!!     You should have received a copy of the GNU General Public License
-!!     along with multitper.  If not, see <http://www.gnu.org/licenses/>.
-!!
-!!     If you wish to report bugs please contact the author. 
-!!     karim.rahim@gmail.com
-!!     112 Jeffery Hall, Queen's University, Kingston Ontario
-!!     Canada, K7L 3N6
+!     The multitaper R package
+!     Multitaper and spectral analysis package for R
+!     Copyright (C) 2010 Karim Rahim 
+
+!     This file is part of the multitaper package for R.
+
+!     The multitaper package is free software: you can redistribute it and
+!     or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 2 of the License, or
+!     any later version.
+
+!     The multitaper package is distributed in the hope that it will be 
+!     useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+!     of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!     GNU General Public License for more details.
+
+!     You should have received a copy of the GNU General Public License
+!     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+
+!     If you wish to report bugs please contact the author. 
+!     karim.rahim@gmail.com
+!     112 Jeffery Hall, Queen's University, Kingston Ontario
+!     Canada, K7L 3N6
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!
-!!  dpss.f90 calculate dpss's using lapack dstebz and dstein
-!!  using the tridiagonal method
-!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!dpss.f90 calculate dpss's using lapack dstebz and dstein
+! using the tridiagonal method.
+
+! Note the subroutine expects to memory for the matrix v and the vector ev to be allocated
+! by the calling program. In the multitaper R package, the allocations occur in dpss.R
+
 subroutine dpss (n, k, nw, v, ev)
   ! Calculate dpss using tridiagonal formulation given in 
   ! Percival and Walden 1993 chapter 9 using Lapack functions
@@ -79,7 +79,14 @@ subroutine dpss (n, k, nw, v, ev)
   nOdd = n/2
   nEven = n - nOdd
   
-  ! allocate memory and use pointers to reduce malloc calls
+  ! Allocate memory and use pointers to reduce malloc calls
+  ! The values 5 and 8 provide the required memory space for the two 
+  ! LAPACK calls. See the documentation for dstebz and dstein.
+  ! Memory used in this procedure is allocated in the following two calls 
+  ! and then approprate blocks of memory
+  ! are accessed using pointers. Note: memory space for the matrix
+  ! used by the calling program must be allocated in the calling program
+
   allocate(blockIntMem(5*nEven+k))
   allocate(blockDbleMem(8*nEven-1))
 
@@ -90,14 +97,15 @@ subroutine dpss (n, k, nw, v, ev)
 
   i = 0
   d = (/ (((n-1-2*i) / 2.0d0)**2 * ctpw, i=0, nEven-1) /)
-  
-  e = (/ ((i * (n - i)) / 2.0d0, i = 1, nEven-1) /)
-  
+
+  ! convert n and i to double before the multiplication, in response to bug when n is large
+  e = (/ ((dble(i) * dble(n - i)) / 2.0d0, i = 1, nEven-1) /)
+
   is_evenN  = (modulo(n, 2) .eq. 0)
   
-  ! modify the last diagonal value as required.
+  ! ensure integer values are converted to double before mult to avoid overflow
   if(is_evenN)  then 
-     d(nEven) = ((n+1-2*nEven)/2.0d0)**2 * ctpw + nEven * nOdd/2.0d0
+     d(nEven) = ((n+1-2*nEven)/2.0d0)**2 * ctpw + dble(nEven) * dble(nOdd)/2.0d0 
   else 
      e(nEven -1) =  e(nEven -1) * sr2
   end if
@@ -134,13 +142,16 @@ subroutine dpss (n, k, nw, v, ev)
      ! odd eigenfunctions (if any)
      ! similar procedure to the even functions
      ! if n is odd, nOdd < nEven
-     
+     ! ensure integer values are converted to double before mult to avoid overflow
+
      d(1:nOdd) = (/ (((n-1-2*i) / 2.0d0)**2 * ctpw, i=0, nOdd-1) /)
      
-     e(1:(nOdd-1)) = (/ ((i * (n - i)) / 2.0d0, i = 1, nOdd-1) /)
+     ! convert n and i to double before the multiplication, in response to bug when n is large
+     e(1:(nOdd-1)) = (/ ((dble(i) * dble(n - i)) / 2.0d0, i = 1, nOdd-1) /)
      
      if(is_evenN) then 
-        d(nOdd) = ((n+1-2*nEven)/2.0d0)**2 * ctpw - nEven * nOdd/2.0d0
+        ! convert n and i to double before the multiplication, in response to bug when n is large
+        d(nOdd) = ((n+1-2*nEven)/2.0d0)**2 * ctpw - dble(nEven) * dble(nOdd)/2.0d0  
      end if
      
      call tridiagMatrixEigen(nOdd, oddK, d, e, v(1,2), 2*n, evlocal, &
@@ -174,9 +185,9 @@ subroutine dpss (n, k, nw, v, ev)
 
   do j = 1 , k
      sqrtsumsq = dsqrt(sum( v(:,j)**2 ))
-     ! set polarity to that from Slepian 78 
+     ! set polarity to Slepian 78 
      ! differs from Percival and Walden
-     ! dpss slope up at centre, this agrees with 
+     ! dpss slope up at centre, this  agrees with 
      ! Thomson 82
      if(v(iTest,j) < 0.0d0) then
         sqrtsumsq = -1.0d0 * sqrtsumsq
@@ -189,12 +200,6 @@ subroutine dpss (n, k, nw, v, ev)
   deallocate(blockIntMem)
   
 end subroutine dpss
-
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!
-!  tridiagMatrixEigen
-!
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 subroutine tridiagMatrixEigen(n, k, d, e, v, ldv, ev, &
      abstol, blockIntMem, work)
@@ -215,7 +220,7 @@ subroutine tridiagMatrixEigen(n, k, d, e, v, ldv, ev, &
 
   il = n - k + 1
   m = k
-   	
+     
   iblock => blockIntMem(1:n)
   isplit => blockIntMem((n+1):(2*n))
   iwork => blockIntMem((2*n+1):(5*n))
@@ -231,4 +236,3 @@ subroutine tridiagMatrixEigen(n, k, d, e, v, ldv, ev, &
   nullify(iblock, isplit, iwork, ifail)
 
 end subroutine tridiagMatrixEigen
-

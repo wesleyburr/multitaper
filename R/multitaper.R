@@ -218,6 +218,7 @@ spec.mtm <- function(timeSeries,
     swz[seq(2,k,2)] <- 0
     ssqswz <- as.numeric(t(swz)%*%swz)
 
+    
     taperedData <- dw * timeSeries
     
     nPadLen <- nFFT - n
