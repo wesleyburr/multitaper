@@ -197,10 +197,9 @@ spec.mtm <- function(timeSeries,
       ev <- dpssIN$eigen 
     }
     else {
-      print("Passed in DPSS object.")
       dw <- .dpssV(dpssIN)
       ev <- .dpssEigen(dpssIN)
-      if(ev == NULL) {
+      if(all(is.null(ev))) {
         ev <- dpssToEigenvalues(dw, nw) }
         dw <- dw*sqrt(deltaT) 
     }
