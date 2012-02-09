@@ -77,6 +77,8 @@ subroutine dpss (n, k, nw, v, ev)
   nEven = n - nOdd
   
   ! allocate memory and use pointers to reduce malloc calls
+  ! the values 5 and 8 provide the required memory space for the two 
+  ! LAPACK calls. 
   allocate(blockIntMem(5*nEven+k))
   allocate(blockDbleMem(8*nEven-1))
 
@@ -85,16 +87,18 @@ subroutine dpss (n, k, nw, v, ev)
   work => blockDbleMem((2*nEven):(7*nEven-1))
   evLocal => blockDbleMem((7*nEven):(8*nEven-1))
 
+  ! convert n and i to double before the calc
+
   i = 0
   d = (/ (((n-1-2*i) / 2.0d0)**2 * ctpw, i=0, nEven-1) /)
   
-  e = (/ ((i * (n - i)) / 2.0d0, i = 1, nEven-1) /)
-  
+  e = (/ ((dble(i) * dble(n - i)) / 2.0d0, i = 1, nEven-1) /)
+
   is_evenN  = (modulo(n, 2) .eq. 0)
   
-  ! modify the last diagonal value as required.
+  ! ensure integer values are converted to double before mult to avoid overflow
   if(is_evenN)  then 
-     d(nEven) = ((n+1-2*nEven)/2.0d0)**2 * ctpw + nEven * nOdd/2.0d0
+     d(nEven) = ((n+1-2*nEven)/2.0d0)**2 * ctpw + dble(nEven) * dble(nOdd)/2.0d0 
   else 
      e(nEven -1) =  e(nEven -1) * sr2
   end if
@@ -131,13 +135,14 @@ subroutine dpss (n, k, nw, v, ev)
      ! odd eigenfunctions (if any)
      ! similar procedure to the even functions
      ! if n is odd, nOdd < nEven
-     
+     ! ensure integer values are converted to double before mult to avoid overflow
+
      d(1:nOdd) = (/ (((n-1-2*i) / 2.0d0)**2 * ctpw, i=0, nOdd-1) /)
      
-     e(1:(nOdd-1)) = (/ ((i * (n - i)) / 2.0d0, i = 1, nOdd-1) /)
+     e(1:(nOdd-1)) = (/ ((dble(i) * dble(n - i)) / 2.0d0, i = 1, nOdd-1) /)
      
      if(is_evenN) then 
-        d(nOdd) = ((n+1-2*nEven)/2.0d0)**2 * ctpw - nEven * nOdd/2.0d0
+        d(nOdd) = ((n+1-2*nEven)/2.0d0)**2 * ctpw - dble(nEven) * dble(nOdd)/2.0d0  
      end if
      
      call tridiagMatrixEigen(nOdd, oddK, d, e, v(1,2), 2*n, evlocal, &
@@ -206,7 +211,7 @@ subroutine tridiagMatrixEigen(n, k, d, e, v, ldv, ev, &
 
   il = n - k + 1
   m = k
-   	
+     
   iblock => blockIntMem(1:n)
   isplit => blockIntMem((n+1):(2*n))
   iwork => blockIntMem((2*n+1):(5*n))
