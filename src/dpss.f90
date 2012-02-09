@@ -27,6 +27,9 @@
 !dpss.f90 calculate dpss's using lapack dstebz and dstein
 ! using the tridiagonal method.
 
+! Note the subroutine expects to memory for the matrix v and the vector ev to be allocated
+! by the calling program. In the multitaper R package, the allocations occur in dpss.R
+
 subroutine dpss (n, k, nw, v, ev)
   ! Calculate dpss using tridiagonal formulation given in 
   ! Percival and Walden 1993 chapter 9 using Lapack functions
@@ -76,9 +79,14 @@ subroutine dpss (n, k, nw, v, ev)
   nOdd = n/2
   nEven = n - nOdd
   
-  ! allocate memory and use pointers to reduce malloc calls
-  ! the values 5 and 8 provide the required memory space for the two 
-  ! LAPACK calls. 
+  ! Allocate memory and use pointers to reduce malloc calls
+  ! The values 5 and 8 provide the required memory space for the two 
+  ! LAPACK calls. See the documentation for dstebz and dstein.
+  ! Memory used in this procedure is allocated in the following two calls 
+  ! and then approprate blocks of memory
+  ! are accessed using pointers. Note: memory space for the matrix
+  ! used by the calling program must be allocated in the calling program
+
   allocate(blockIntMem(5*nEven+k))
   allocate(blockDbleMem(8*nEven-1))
 
@@ -87,11 +95,10 @@ subroutine dpss (n, k, nw, v, ev)
   work => blockDbleMem((2*nEven):(7*nEven-1))
   evLocal => blockDbleMem((7*nEven):(8*nEven-1))
 
-  ! convert n and i to double before the calc
-
   i = 0
   d = (/ (((n-1-2*i) / 2.0d0)**2 * ctpw, i=0, nEven-1) /)
-  
+
+  ! convert n and i to double before the multiplication, in response to bug when n is large
   e = (/ ((dble(i) * dble(n - i)) / 2.0d0, i = 1, nEven-1) /)
 
   is_evenN  = (modulo(n, 2) .eq. 0)
@@ -139,9 +146,11 @@ subroutine dpss (n, k, nw, v, ev)
 
      d(1:nOdd) = (/ (((n-1-2*i) / 2.0d0)**2 * ctpw, i=0, nOdd-1) /)
      
+     ! convert n and i to double before the multiplication, in response to bug when n is large
      e(1:(nOdd-1)) = (/ ((dble(i) * dble(n - i)) / 2.0d0, i = 1, nOdd-1) /)
      
      if(is_evenN) then 
+        ! convert n and i to double before the multiplication, in response to bug when n is large
         d(nOdd) = ((n+1-2*nEven)/2.0d0)**2 * ctpw - dble(nEven) * dble(nOdd)/2.0d0  
      end if
      
