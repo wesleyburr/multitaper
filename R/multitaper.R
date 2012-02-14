@@ -37,7 +37,7 @@
 ##############################################################
 spec.mtm <- function(timeSeries,
                      nw=4.0,
-                     k=8,
+                     k=7,
                      nFFT="default", 
                      taper=c("dpss"),
                      centre=c("Slepian"),
