@@ -79,11 +79,15 @@ spec.mtm <- function(timeSeries,
       warning("Time series is not a ts object and dT is not set. Frequency array and axes may be incorrect.")
     }
     if(!is.ts(timeSeries)) {
-      timeSeries <- as.double(as.ts(timeSeries))    
+      if(!is.complex(timeSeries)) {
+        timeSeries <- as.double(as.ts(timeSeries)) 
+      }
     } else {
       # Order matters here, because as.double breaks the ts() class
       dtTmp <- deltat(timeSeries)
-      timeSeries <- as.double(timeSeries)
+      if(!is.complex(timeSeries)) {
+        timeSeries <- as.double(timeSeries)
+      }
     }
 
     if(is.null(dT)) {
@@ -111,7 +115,11 @@ spec.mtm <- function(timeSeries,
     }
 
     na.action(timeSeries)
-    sigma2 <- var(timeSeries) * (n-1)/n
+    if(!is.complex(timeSeries)) {
+      sigma2 <- var(timeSeries) * (n-1)/n
+    } else {
+      sigma2 <- var(Re(timeSeries)) * (n-1)/n + var(Im(timeSeries)) * (n-1)/n 
+    }
 
     if(nFFT == "default") {
         nFFT <- 2* 2^ceiling(log2(n))
@@ -186,6 +194,14 @@ spec.mtm <- function(timeSeries,
                      dtUnits,
                      ...) {
 
+    # Complex check case
+    if(is.complex(timeSeries)) {
+      if(!returnZeroFreq) {
+        returnZeroFreq <- 1 
+        warning("Cannot set returnZeroFreq to 0 for complex time series.")
+      } 
+    }
+
     dw <- NULL
     ev <- NULL
     receivedDW <- TRUE
@@ -218,27 +234,44 @@ spec.mtm <- function(timeSeries,
     swz[seq(2,k,2)] <- 0
     ssqswz <- as.numeric(t(swz)%*%swz)
 
-    
     taperedData <- dw * timeSeries
     
     nPadLen <- nFFT - n
-    paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))
+    if(!is.complex(timeSeries)) {
+      paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))
+    } else {
+      paddedTaperedData <- rbind(taperedData, matrix(complex(0,0), nPadLen, k)) 
+    }
     cft <- mvfft(paddedTaperedData)
-    cft <- cft[(1+offSet):(nFreqs+offSet),]
+    if(!is.complex(timeSeries)) {
+      cft <- cft[(1+offSet):(nFreqs+offSet),]
+    } else {
+#      cft <- rbind(cft[(nFreqs+offSet+1):nFFT,],cft[(1+offSet):(nFreqs+offSet),])
+    }
     sa <- abs(cft)^2
-    
-    resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
+   
+    if(!is.complex(timeSeries)) {
+      resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
+    } else {
+      resultFreqs <- (-(nFreqs-1):(nFreqs-2))*scaleFreq
+    }
 
     adaptive <-  NULL
     jk <- NULL
     PWdofs <- NULL
     if(!jackknife) {
-        adaptive <- .mw2wta(sa, nFreqs, k,
-                            sigma2, deltaT, ev)
+        if(!is.complex(timeSeries)) {
+          adaptive <- .mw2wta(sa, nFreqs, k, sigma2, deltaT, ev)
+        } else {
+          adaptive <- .mw2wta(sa, nFFT, k, sigma2, deltaT, ev) 
+        }
     } else {
         stopifnot(jkCIProb < 1, jkCIProb > .5)
-        adaptive <- .mw2jkw(sa, nFreqs, k,
-                            sigma2, deltaT, ev)
+        if(!is.complex(timeSeries)) {
+          adaptive <- .mw2jkw(sa, nFreqs, k, sigma2, deltaT, ev)
+        } else {
+          adaptive <- .mw2jkw(sa, nFFT, k, sigma2, deltaT, ev)
+        }
         scl <- exp(qt(jkCIProb,adaptive$dofs)*
                    sqrt(adaptive$varjk))
         upperCI <- adaptive$s*scl
@@ -435,110 +468,6 @@ spec.mtm <- function(timeSeries,
     return(spec.out);
 }
 
-##############################################################
-##
-##  spec.mtm.c
-##
-##  Computes multitaper spectrum using Slepian tapers, for 
-##  complex data. Missing many features of other functions 
-##  (for now!).
-##
-##############################################################
-spec.mtm.c <- function(timeSeries,
-                     nw=4.0,
-                     k=8,
-                     nFFT="default", 
-                     plot=TRUE,
-                     na.action=na.fail,
-                     returnInternals=TRUE,
-                     dtUnits=c("default"),
-                     dT=NULL,
-                     ...) {
-
-    if(!is.complex(timeSeries)) { stop("spec.mtm.c requires complex data") }
-
-    if(is.null(dT)) {
-      deltaT <- 1.0
-    } else {
-      deltaT <- dT
-    }
-
-    n <- length(timeSeries)
-
-    dpssIN <- dpss(n, k, nw=nw, returnEigenvalues=TRUE)
-    dw <- dpssIN$v*sqrt(deltaT)
-    ev <- dpssIN$eigen 
-
-    # set nFFT
-    if(nFFT == "default") {
-        nFFT <- 2* 2^ceiling(log2(n))
-    } else {
-        stopifnot(is.numeric(nFFT))
-    }
- 
-    freqs <- (-nFFT/2):(nFFT/2-1)
-    nFreqs <- length(freqs)
-
-    # center data
-    real.c <- centre(Re(timeSeries),nw=nw,k=k,deltaT=deltaT)
-    imag.c <- centre(Im(timeSeries),nw=nw,k=k,deltaT=deltaT)
-    timeSeries <- complex(real=real.c,imaginary=imag.c)
-
-    # Note that the frequency axis is set by default to unit-less
-    # scaling as 0 through 0.5 cycles/period. The user parameter
-    # dtUnits modifies this scaling in the plot.mtm function.
-    scaleFreq <- 1 / as.double(nFFT * deltaT)
-    
-    swz <- NULL ## Percival and Walden H0
-    ssqswz <- NULL
-    swz <- apply(dw, 2, sum)
-    swz[seq(2,k,2)] <- 0
-    ssqswz <- as.numeric(t(swz)%*%swz)
-
-#   this is the first part where there is a difference
-    taperedData <- dw * timeSeries
-    
-    nPadLen <- nFFT - n
-    paddedTaperedData <- rbind(taperedData, matrix(complex(0,0), nPadLen, k))
-    cft <- mvfft(paddedTaperedData)
-    sa <- abs(cft)^2
-    
-    resultFreqs <- freqs*scaleFreq 
-
-    auxiliary <- list(dpss=dpssIN,
-                      eigenCoefs=cft,
-                      eigenCoefWt=NULL,
-                      nfreqs=nFreqs,
-                      nFFT=nFFT,
-                      jk=NULL,
-                      Ftest=NULL,
-                      cmv=NULL,
-                      dofs=NULL,
-                      nw=nw,
-                      k=k,
-                      deltaT=deltaT,
-                      dtUnits=dtUnits,
-                      taper="dpss")
-
-    spec.out <- list(origin.n=n,
-                     method="Multitaper Spectral Estimate",
-                     pad= nFFT - n,
-                     spec=sa,
-                     freq=resultFreqs,
-                     series=timeSeries,
-                     mtm=auxiliary)
-
-    class(spec.out) <- c("mtm", "spec")
-    
-    if(plot) {
-        plot.mtm(spec.out, ...)
-        return(invisible(spec.out))
-    } else {
-        return(spec.out)
-    }
-}
-
-
 #########################################################################
 ##
 ## centre
@@ -578,10 +507,17 @@ centre <- function(x, nw=NULL, k=NULL, deltaT=NULL, trim=0) {
         ## zero swz where theoretically zero; odd tapers
         swz[seq(2,k,2)] <- 0.0
         ssqswz <- sum(swz^2)
-        res <- .mweave(x, dw, swz,
-                       n, k, ssqswz, deltaT)
-
-        res <- x - res$cntr
+        if(!is.complex(x)) {
+          res <- .mweave(x, dw, swz,
+                         n, k, ssqswz, deltaT)
+          res <- x - res$cntr
+        } else {
+          res.r <- .mweave(Re(x), dw, swz,
+                           n, k, ssqswz, deltaT)
+          res.i <- .mweave(Im(x), dw, swz,
+                           n, k, ssqswz, deltaT)
+          res <- x - complex(real=res.r$cntr,imaginary=res.i$cntr)
+        }
     }
     return(res)
 }
