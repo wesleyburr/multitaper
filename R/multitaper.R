@@ -246,7 +246,7 @@ spec.mtm <- function(timeSeries,
     if(!is.complex(timeSeries)) {
       cft <- cft[(1+offSet):(nFreqs+offSet),]
     } else {
-#      cft <- rbind(cft[(nFreqs+offSet+1):nFFT,],cft[(1+offSet):(nFreqs+offSet),])
+      cft <- rbind(cft[(nFreqs+offSet+1):nFFT,],cft[(1+offSet):(nFreqs+offSet),])
     }
     sa <- abs(cft)^2
    
