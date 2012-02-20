@@ -61,6 +61,9 @@ spec.mtm <- function(timeSeries,
     centre <- match.arg(centre,c("Slepian","arithMean","trimMean","none"))
     dtUnits <- match.arg(dtUnits,c("second","hour","day","month","year","default"))
 
+    if( (taper=="sine") && is.complex(timeSeries)) {
+      stop("Sine tapering not implemented for complex time series.") 
+    }
     if( (taper=="sine") && jackknife) { 
       warning("Cannot jackknife over sine tapers.")
       jackknife <- FALSE
@@ -68,7 +71,7 @@ spec.mtm <- function(timeSeries,
     if( (taper=="sine") && Ftest) { 
       warning("Cannot compute Ftest over sine tapers.")
       Ftest <- FALSE
-    }
+    } 
     if( (taper=="sine") && !returnZeroFreq) { returnZeroFreq = TRUE; 
                                               warning("returnZeroFreq must be TRUE for sine taper option.") }
     if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
