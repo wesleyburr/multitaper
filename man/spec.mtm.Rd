@@ -32,7 +32,7 @@
    contiguous time series objects.
 }
 \usage{
-spec.mtm(timeSeries, nw=4.0, k=8, nFFT="default", taper=c("dpss"), centre=c("Slepian"),
+spec.mtm(timeSeries, nw=4.0, k=7, nFFT="default", taper=c("dpss"), centre=c("Slepian"),
                      dpssIN=NULL, returnZeroFreq=TRUE, Ftest=FALSE, jackknife=FALSE,
                      jkCIProb=.95, maxAdaptiveIterations=100, plot=TRUE, na.action=na.fail,
                      returnInternals=FALSE, sineAdaptive=FALSE, sineSmoothFact=0.2,

@@ -161,14 +161,13 @@ plot.mtm.coh <- function(x,
     # allow for user-settable xlabel, or unit display
     if(!hasArg("xlab")) {
       if(!(x$mtm$dtUnits == "default")) {
-        xlabText <- paste("Frequency in cycles/",x$mtm$dtUnits,sep="") }
+        xlab <- paste("Frequency in cycles/",x$mtm$dtUnits,sep="") }
       else {
-        xlabText <- paste("Frequency")
+        xlab <- paste("Frequency")
       }
-      mtext(xlabText, side=1, line=3, cex=par()$cex)
-    } else {
-      mtext(xlab, side=1, line=3, cex=par()$cex)
     }
+    mtext(xlab, side=1, line=3, cex=par()$cex)
+
     TRmscTicks <- seq(0, max(plotTRmsc[,2]), .5)
     axis(2, at=TRmscTicks)
     mtext("Inverse Transform of MSC",

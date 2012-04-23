@@ -37,15 +37,15 @@
 ##  traditional least-squares. Returns intercept and slope.
 ##
 ##############################################################
-multitaperTrend = function(xd, B, deltat, time) {
+multitaperTrend = function(xd, B, dT, t.in) {
 
-  N <- length(time)
-  w <- B*deltat
+  N <- length(t.in)
+  w <- B*dT
 
   if(length(xd)!=N) { stop("Time array and data array not the same length!")} 
   if((B <= 0) || (B > 0.5)) { stop("B outside acceptable limits: 0 < B < 0.5.")}
 
-  ttbar <- time - (time[N]+time[1])/2
+  ttbar <- t.in - (t.in[N]+t.in[1])/2
   k <- floor(2*N*w -1)
   vt <- (dpss(N,k=k,nw=N*w))$v
   vk <- colSums(vt)
@@ -62,5 +62,5 @@ multitaperTrend = function(xd, B, deltat, time) {
   xk <- colSums(xd*vt[,subsel])
   b <- sum(tvk*xk)/sum(tvk*tvk)
 
-  return(c(a,b))
+  return(list(a,b,ttbar))
 }

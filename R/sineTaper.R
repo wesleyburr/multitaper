@@ -38,6 +38,7 @@
 ##  plotting and transfer function purposes.
 ##
 ##  ref: Kurt S. Riedel and Alexander Sidorenko 
+## 
 ####################################################################
 
 sineTaper <- function(n, k) {

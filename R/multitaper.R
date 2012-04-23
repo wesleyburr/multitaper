@@ -132,7 +132,6 @@ spec.mtm <- function(timeSeries,
     stopifnot(nFFT >= n)
 
     ## convert time-series to zero-mean by one of three methods, if set; default is Slepian
-
     if(centre=="Slepian") {
       if(taper=="dpss") {
         timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
