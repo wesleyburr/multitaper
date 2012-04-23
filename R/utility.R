@@ -2,7 +2,7 @@
 ##     Multitaper and spectral analysis package for R
 ##     Copyright (C) 2011 Karim Rahim 
 ##
-##     Written by Wesley Burr.
+##     Written by Karim Rahim and Wesley Burr.
 ##
 ##     This file is part of the multitaper package for R.
 ##     http://cran.r-project.org/web/packages/multitaper/index.html
@@ -28,37 +28,39 @@
 ##     Canada, K7L 3N6
 
 
-####################################################################
+##############################################################
 ##
-##  sineTaper
+##  multitaperTrend 
 ##
-##  Generates k sine tapers of length n. These are not actually
-##  used in the \pkg{multitaper} implementation of the sine-tapered
-##  multiple taper spectrum estimate, but are provided for 
-##  plotting and transfer function purposes.
+##  Utility routine that computes multitaper-based linear
+##  trend line. Has improved spectral properties over 
+##  traditional least-squares. Returns intercept and slope.
 ##
-##  ref: Kurt S. Riedel and Alexander Sidorenko 
-## 
-####################################################################
+##############################################################
+multitaperTrend = function(xd, B, dT, t.in) {
 
-sineTaper <- function(n, k) {
+  N <- length(t.in)
+  w <- B*dT
 
-    stopifnot(n >= 8, k >= 1)
+  if(length(xd)!=N) { stop("Time array and data array not the same length!")} 
+  if((B <= 0) || (B > 0.5)) { stop("B outside acceptable limits: 0 < B < 0.5.")}
 
-    coef1 <- as.double(sqrt(2/(n+1)))
-    coef2 <- as.double((pi/(n+1))*seq(1,n,1))
-    kmat <- matrix(data=as.double(rep(seq(1,n),each=k)),nrow=n,ncol=k)
-    
-    taper <- coef1*sin(coef2*kmat)
+  ttbar <- t.in - (t.in[N]+t.in[1])/2
+  k <- floor(2*N*w -1)
+  vt <- (dpss(N,k=k,nw=N*w))$v
+  vk <- colSums(vt)
 
-    out <- NULL
-    out$v <- as.matrix(taper) 
+  # solve for a
+  subsel <- seq(1,k,by=2)
+  vk <- colSums(vt)[subsel]
+  xk <- colSums(xd*vt[,subsel])
+  a <- sum(xk*vk) / sum(vk*vk)
 
-    # include k in object since these tapers are not always computed
-    # in context of a mtm object.
-    res <- list(v=out$v,
-                eigen=NULL,
-                k=k)
-    class(res) <- "dpss"
-    return(res)
+  # solve for b
+  subsel <- seq(2,k,by=2)
+  tvk <- colSums(ttbar*vt[,subsel])
+  xk <- colSums(xd*vt[,subsel])
+  b <- sum(tvk*xk)/sum(tvk*tvk)
+
+  return(list(a,b,ttbar))
 }

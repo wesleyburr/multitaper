@@ -24,30 +24,16 @@
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-\name{dpssToEigenvalues}
-\alias{dpssToEigenvalues}
-\title{Compute eigenvalues for the Discrete Prolate Spheroidal Sequences
-(dpss)}
+\name{HadCRUTnh}
+\alias{HadCRUTnh}
+\title{HadCRUT Land Temperature Anomaly (Northern Hemisphere) Series}
 \description{
-   Compute eigenvalues for the Discrete Prolate Spheroidal Sequences. The
-   method used here is described in Chapter 8 of Percival and Walden (1993).
+  Hadley Climate Research Unit Temperature anomaly (Northern Hemisphere) 
+  time series. Consists of monthly observations, truncated to start at
+  March, 1958 and extend to September, 2009, to match mlco2 dataset.
+  This dataset was retrieved from the Hadley CRU on Oct 1, 2011.
 }
-\usage{
-dpssToEigenvalues(v, nw)
-}
-\arguments{
-  \item{v}{A matrix of dpss's, with each column representing a sequence of a
-    different order, 1 to k.}
-  \item{nw}{A positive double-precision number, the time-bandwidth
-    parameter.}
-}
-\references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
-}
-\examples{
-dpss1 <- dpss(10,4,4.0, returnEigenvalues=FALSE)$v
-dpssToEigenvalues(dpss1,4.0)
-}
-\keyword{math}
+\usage{HadCRUTnh}
+\format{ A data frame indicating the year, month and temperature anomaly 
+      for the Northern Hemisphere, between 1958 and 2009.}
+\keyword{datasets}

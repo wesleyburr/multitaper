@@ -16,32 +16,24 @@
 %     GNU General Public License for more details.
 
 %     You should have received a copy of the GNU General Public License
-%     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+%     along with multitaper.  If not, see <http://www.gnu.org/licenses/>.
 
 %     If you wish to report bugs please contact the author. 
 %     karim.rahim@gmail.com
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-% Dataset Rd file added in response to bug from Kirk Hornik Aug 12,
-% 2010.
-
-\name{willamette}
-\alias{willamette}
-\title{Willamette River time series}
+\name{centralEnglandDailyTemp}
+\alias{centralEnglandDailyTemp}
+\title{Central England Daily temperature time series}
 \description{
-   Willamette River time series. Each point represents the log of the
-   average daily flow over a one month period from October, 1950, to
-   August 1983. The sampling time is 1/12 year and the Nyquist frequency
-   is 6 cycles per year. The data is from the companion code to \dQuote{Spectral
-   Analysis for the Physical Applications} (1993) and was originally compiled by
-   the US Geological Survey. 
+  Central England monthly temperature time serie. The data set represents
+  daily CET values expressed in Celcius . The data set
+  contains temperatures for the years 1772 through 2010.  This dataset was
+  retrieved from the Met office at Hadley on Oct 15, 2011.
 }
-\usage{willamette}
-\format{A vector containing 395 observations}   
-\references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
-}
+\usage{centralEnglandDailyTemp}
+\format{  A data frame indicating the year, month, and temperature from
+     observed in Central England. This data-set contains 4224
+     observations.}
 \keyword{datasets}

@@ -24,30 +24,23 @@
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-\name{dpssToEigenvalues}
-\alias{dpssToEigenvalues}
-\title{Compute eigenvalues for the Discrete Prolate Spheroidal Sequences
-(dpss)}
+\name{sineTaper}
+\alias{sineTaper}
+\title{Computes sine tapers}
 \description{
-   Compute eigenvalues for the Discrete Prolate Spheroidal Sequences. The
-   method used here is described in Chapter 8 of Percival and Walden (1993).
+  Computes sine tapers for use in transfer function estimation and 
+  plotting. Not called from within spec.mtm.
 }
 \usage{
-dpssToEigenvalues(v, nw)
+sineTaper(n, k)
 }
 \arguments{
-  \item{v}{A matrix of dpss's, with each column representing a sequence of a
-    different order, 1 to k.}
-  \item{nw}{A positive double-precision number, the time-bandwidth
-    parameter.}
+  \item{n}{The data as a vector or as a time series.}
+  \item{k}{The Slepian bandwidth parameter, typically between 2.0 and 6.0.}
 }
 \references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
-}
-\examples{
-dpss1 <- dpss(10,4,4.0, returnEigenvalues=FALSE)$v
-dpssToEigenvalues(dpss1,4.0)
+  Riedel, K.S. and Sidorenko, A. (1995)
+  Minimum bias multiple taper spectral estimation. \emph{IEEE Transactions
+  on Signal Processing}, Volume \bold{43}, Number \bold{1}, pp. 188--195.
 }
 \keyword{math}

@@ -24,30 +24,32 @@
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-\name{dpssToEigenvalues}
-\alias{dpssToEigenvalues}
-\title{Compute eigenvalues for the Discrete Prolate Spheroidal Sequences
-(dpss)}
+\name{multitaperTrend}
+\alias{multitaperTrend}
+\title{Estimate Linear Trend using Multitaper Techniques}
 \description{
-   Compute eigenvalues for the Discrete Prolate Spheroidal Sequences. The
-   method used here is described in Chapter 8 of Percival and Walden (1993).
+   Estimate linear trend using inverse spectrum estimation, with the 
+   spectrum being computed via multitaper. This technique has improved
+   spectral properties when compared to the least-squares approach. 
+   Returned values from this function include the intercept, slope,
+   and centered time array.
 }
 \usage{
-dpssToEigenvalues(v, nw)
+multitaperTrend(xd, B, dT, t.in)
 }
 \arguments{
-  \item{v}{A matrix of dpss's, with each column representing a sequence of a
-    different order, 1 to k.}
-  \item{nw}{A positive double-precision number, the time-bandwidth
-    parameter.}
-}
-\references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
+  \item{xd}{Contiguous time series to be detrended.}
+  \item{B}{Bandwidth to use in estimating trend in physical units; corresponds
+  to NW via equation NW=BT, where N and W are the usual Slepian definitions,
+  and T is the total time elapsed, i.e. T = N*dT.}
+  \item{dT}{Time step for series xd, also used in computing T.}
+  \item{t.in}{Time array, used in accurately estimating the slope.}
 }
 \examples{
-dpss1 <- dpss(10,4,4.0, returnEigenvalues=FALSE)$v
-dpssToEigenvalues(dpss1,4.0)
+x <- 1:101
+y <- 1.0 + 0.5*(x) + rnorm(n=101,mean=0,sd=2)
+vars <- multitaperTrend(xd=y, B=0.05, dT=1.0, t.in=x)
+plot(x,y,type="l")
+lines(x,vars[[1]]+vars[[2]]*vars[[3]],type="l",col="red")
 }
 \keyword{math}

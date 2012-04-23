@@ -36,8 +36,8 @@
 ##
 ##############################################################
 spec.mtm <- function(timeSeries,
-                     nw=5.0,
-                     k=10,
+                     nw=4.0,
+                     k=7,
                      nFFT="default", 
                      taper=c("dpss"),
                      centre=c("Slepian"),
@@ -53,7 +53,7 @@ spec.mtm <- function(timeSeries,
                      sineAdaptive=FALSE,
                      sineSmoothFact=0.2,
                      dtUnits=c("default"),
-                     periodAxis=FALSE,
+                     dT=NULL,
                      ...) {
 
     series <- deparse(substitute(timeSeries))
@@ -61,6 +61,9 @@ spec.mtm <- function(timeSeries,
     centre <- match.arg(centre,c("Slepian","arithMean","trimMean","none"))
     dtUnits <- match.arg(dtUnits,c("second","hour","day","month","year","default"))
 
+    if( (taper=="sine") && is.complex(timeSeries)) {
+      stop("Sine tapering not implemented for complex time series.") 
+    }
     if( (taper=="sine") && jackknife) { 
       warning("Cannot jackknife over sine tapers.")
       jackknife <- FALSE
@@ -68,26 +71,44 @@ spec.mtm <- function(timeSeries,
     if( (taper=="sine") && Ftest) { 
       warning("Cannot compute Ftest over sine tapers.")
       Ftest <- FALSE
-    }
+    } 
     if( (taper=="sine") && !returnZeroFreq) { returnZeroFreq = TRUE; 
                                               warning("returnZeroFreq must be TRUE for sine taper option.") }
     if( (taper=="sine") && sineSmoothFact > 0.5) { warning("Smoothing Factor > 0.5 is very high!")}
 
+    dtTmp <- NULL
     # warning for deltaT missing: makes all frequency plots incorrect
-    if(!is.ts(timeSeries) && !hasArg("deltaT")) {
-      warning("Time series is not a ts object. deltaT is not set, and frequency axes may be incorrect.")
-      deltaT <- 1.0
-      timeSeries <- as.double(as.ts(timeSeries))
-    } else if(!is.ts(timeSeries)) {
-      timeSeries <- as.double(as.ts(timeSeries))
+    if(!is.ts(timeSeries) && is.null(dT)) {
+      warning("Time series is not a ts object and dT is not set. Frequency array and axes may be incorrect.")
+    }
+    if(!is.ts(timeSeries)) {
+      if(!is.complex(timeSeries)) {
+        timeSeries <- as.double(as.ts(timeSeries)) 
+      }
     } else {
-      deltaT <- deltat(timeSeries)
-      timeSeries <- as.double(timeSeries)
+      # Order matters here, because as.double breaks the ts() class
+      dtTmp <- deltat(timeSeries)
+      if(!is.complex(timeSeries)) {
+        timeSeries <- as.double(timeSeries)
+      }
+    }
+
+    if(is.null(dT)) {
+      if(is.null(dtTmp)) {
+        deltaT <- 1.0
+      } else {
+        deltaT <- dtTmp
+      }
+    } else {
+      deltaT <- dT
     }
     n <- length(timeSeries)
 
     if(taper=="dpss") {
       stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw, n > 8)
+      if (nw/n > 0.5) { 
+          stop("half-bandwidth parameter (w) is greater than 1/2")
+      }
       if(k==1) {
         Ftest=FALSE
         jackknife=FALSE
@@ -97,7 +118,11 @@ spec.mtm <- function(timeSeries,
     }
 
     na.action(timeSeries)
-    sigma2 <- var(timeSeries) * (n-1)/n
+    if(!is.complex(timeSeries)) {
+      sigma2 <- var(timeSeries) * (n-1)/n
+    } else {
+      sigma2 <- var(Re(timeSeries)) * (n-1)/n + var(Im(timeSeries)) * (n-1)/n 
+    }
 
     if(nFFT == "default") {
         nFFT <- 2* 2^ceiling(log2(n))
@@ -107,9 +132,12 @@ spec.mtm <- function(timeSeries,
     stopifnot(nFFT >= n)
 
     ## convert time-series to zero-mean by one of three methods, if set; default is Slepian
-
     if(centre=="Slepian") {
-      timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
+      if(taper=="dpss") {
+        timeSeries <- centre(timeSeries, nw=nw, k=k, deltaT=deltaT)    
+      } else {  # edge case: sine taper, set initial k, but too high for default nw=4.0
+        timeSeries <- centre(timeSeries, nw=5.0, k=8, deltaT=deltaT)
+      }
     } else if(centre=="arithMean") {
       timeSeries <- centre(timeSeries, trim=0) 
     } else if(centre=="trimMean") {
@@ -168,9 +196,18 @@ spec.mtm <- function(timeSeries,
                      dtUnits,
                      ...) {
 
+    # Complex check case
+    if(is.complex(timeSeries)) {
+      if(!returnZeroFreq) {
+        returnZeroFreq <- 1 
+        warning("Cannot set returnZeroFreq to 0 for complex time series.")
+      } 
+    }
+
     dw <- NULL
     ev <- NULL
     receivedDW <- TRUE
+
     if(!.is.dpss(dpssIN)) {
       receivedDW <- FALSE
       dpssIN <- dpss(n, k, nw=nw, returnEigenvalues=TRUE)
@@ -178,9 +215,9 @@ spec.mtm <- function(timeSeries,
       ev <- dpssIN$eigen 
     }
     else {
-      dw <- .dpssV(dpss)
-      ev <- .dpssEigen(dpss)
-      if(ev == NULL) {
+      dw <- .dpssV(dpssIN)
+      ev <- .dpssEigen(dpssIN)
+      if(all(is.null(ev))) {
         ev <- dpssToEigenvalues(dw, nw) }
         dw <- dw*sqrt(deltaT) 
     }
@@ -199,26 +236,44 @@ spec.mtm <- function(timeSeries,
     swz[seq(2,k,2)] <- 0
     ssqswz <- as.numeric(t(swz)%*%swz)
 
-    taperedData <- dw*timeSeries
+    taperedData <- dw * timeSeries
     
     nPadLen <- nFFT - n
-    paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))
+    if(!is.complex(timeSeries)) {
+      paddedTaperedData <- rbind(taperedData, matrix(0, nPadLen, k))
+    } else {
+      paddedTaperedData <- rbind(taperedData, matrix(complex(0,0), nPadLen, k)) 
+    }
     cft <- mvfft(paddedTaperedData)
-    cft <- cft[(1+offSet):(nFreqs+offSet),]
+    if(!is.complex(timeSeries)) {
+      cft <- cft[(1+offSet):(nFreqs+offSet),]
+    } else {
+      cft <- rbind(cft[(nFreqs+offSet+1):nFFT,],cft[(1+offSet):(nFreqs+offSet),])
+    }
     sa <- abs(cft)^2
-    
-    resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
+   
+    if(!is.complex(timeSeries)) {
+      resultFreqs <- ((0+offSet):(nFreqs+offSet-1))*scaleFreq 
+    } else {
+      resultFreqs <- (-(nFreqs-1):(nFreqs-2))*scaleFreq
+    }
 
     adaptive <-  NULL
     jk <- NULL
     PWdofs <- NULL
     if(!jackknife) {
-        adaptive <- .mw2wta(sa, nFreqs, k,
-                            sigma2, deltaT, ev)
+        if(!is.complex(timeSeries)) {
+          adaptive <- .mw2wta(sa, nFreqs, k, sigma2, deltaT, ev)
+        } else {
+          adaptive <- .mw2wta(sa, nFFT, k, sigma2, deltaT, ev) 
+        }
     } else {
         stopifnot(jkCIProb < 1, jkCIProb > .5)
-        adaptive <- .mw2jkw(sa, nFreqs, k,
-                            sigma2, deltaT, ev)
+        if(!is.complex(timeSeries)) {
+          adaptive <- .mw2jkw(sa, nFreqs, k, sigma2, deltaT, ev)
+        } else {
+          adaptive <- .mw2jkw(sa, nFFT, k, sigma2, deltaT, ev)
+        }
         scl <- exp(qt(jkCIProb,adaptive$dofs)*
                    sqrt(adaptive$varjk))
         upperCI <- adaptive$s*scl
@@ -434,6 +489,9 @@ centre <- function(x, nw=NULL, k=NULL, deltaT=NULL, trim=0) {
             warning(paste("Ignoring trim =", trim))
         }
         stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw)
+        if (nw/length(x) > 0.5) { 
+            stop("half-bandwidth parameter (w) is greater than 1/2")
+        }
         if(is.null(deltaT)) {
             if(is.ts(x)) {
                 deltaT <- deltat(ts)
@@ -451,10 +509,17 @@ centre <- function(x, nw=NULL, k=NULL, deltaT=NULL, trim=0) {
         ## zero swz where theoretically zero; odd tapers
         swz[seq(2,k,2)] <- 0.0
         ssqswz <- sum(swz^2)
-        res <- .mweave(x, dw, swz,
-                       n, k, ssqswz, deltaT)
-
-        res <- x - res$cntr
+        if(!is.complex(x)) {
+          res <- .mweave(x, dw, swz,
+                         n, k, ssqswz, deltaT)
+          res <- x - res$cntr
+        } else {
+          res.r <- .mweave(Re(x), dw, swz,
+                           n, k, ssqswz, deltaT)
+          res.i <- .mweave(Im(x), dw, swz,
+                           n, k, ssqswz, deltaT)
+          res <- x - complex(real=res.r$cntr,imaginary=res.i$cntr)
+        }
     }
     return(res)
 }
@@ -517,7 +582,8 @@ mtm.coh <- function(mtm1, mtm2,
                     s1=double(nordP2), s2=double(nordP2),
                     jkmsc=double(nordP2), TRmsc=double(nordP2),
                     bias=double(nfreqs),
-                    cx=complex(nordP2))
+                    cx=complex(nordP2),
+                    PACKAGE="multitaper")
 
     auxiliary <- list(nfreqs=mtm1$mtm$nFreqs,
                       nFFT=mtm1$mtm$nFFT,

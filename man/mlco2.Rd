@@ -24,30 +24,17 @@
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-\name{dpssToEigenvalues}
-\alias{dpssToEigenvalues}
-\title{Compute eigenvalues for the Discrete Prolate Spheroidal Sequences
-(dpss)}
+\name{mlco2}
+\alias{mlco2}
+\title{Mauna Loa Observatory CO2 Monthly Averages}
 \description{
-   Compute eigenvalues for the Discrete Prolate Spheroidal Sequences. The
-   method used here is described in Chapter 8 of Percival and Walden (1993).
+  Observations of monthly CO2 atmospheric concentration averages from the 
+  Mauna Loa Observatory, Mauna Loa, Hawaii, USA. Obtained from the ESRL
+  Global Monitoring Division of the National Oceanic and Atmospheric Administration
+  at http://www.esrl.noaa.gov/gmd/dv/data/index.php?parameter_name=Carbon\%2BDioxide. 
+  Dataset downloaded Oct 1, 2011.
 }
-\usage{
-dpssToEigenvalues(v, nw)
-}
-\arguments{
-  \item{v}{A matrix of dpss's, with each column representing a sequence of a
-    different order, 1 to k.}
-  \item{nw}{A positive double-precision number, the time-bandwidth
-    parameter.}
-}
-\references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
-}
-\examples{
-dpss1 <- dpss(10,4,4.0, returnEigenvalues=FALSE)$v
-dpssToEigenvalues(dpss1,4.0)
-}
-\keyword{math}
+\usage{mlco2}
+\format{ A data frame indicating the year, month and atmospheric concentration 
+   of CO2 in PPM.}
+\keyword{datasets}
