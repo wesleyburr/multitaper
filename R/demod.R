@@ -33,7 +33,7 @@
 ##  .sphsed
 ##
 ##  Phase wrapping routine; takes phases and tracks violation
-##  of +/-360 degree boundary, and wraps to aliases. For use
+##  of +/-360 degree boundary, and wraps aliases. For use
 ##  by demod.dpss().
 ##
 ################################################################
@@ -97,9 +97,7 @@ demod.dpss <- function(x,
     if(wrapphase) {
         phase <- .sphsed(phase)
     }
-
-    ## specific to Dave's application, fix in the example
-    ## phase1 <- phase - 360*deltaT*centreFreq * (1:nResultVals) -16
+    phase <- phase - 360*deltaT*centreFreq * (1:nResultVals) 
 
     list(amplitude=Mod(complexDemod), phase=phase, complexDemod=complexDemod)
 }
