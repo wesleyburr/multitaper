@@ -141,4 +141,4 @@
     return(list(spec=out$sx,kadapt=out$kopt))
 
 }
-#
+

@@ -27,7 +27,6 @@
 ##     112 Jeffery Hall, Queen's University, Kingston Ontario
 ##     Canada, K7L 3N6
 
-
 .dpssV <- function(obj) obj$v
 
 .dpssEigen <- function(obj) obj$eigen

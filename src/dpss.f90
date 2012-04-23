@@ -236,4 +236,3 @@ subroutine tridiagMatrixEigen(n, k, d, e, v, ldv, ev, &
   nullify(iblock, isplit, iwork, ifail)
 
 end subroutine tridiagMatrixEigen
-

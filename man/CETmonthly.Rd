@@ -24,30 +24,24 @@
 %     112 Jeffery Hall, Queen's University, Kingston Ontario
 %     Canada, K7L 3N6
 
-\name{dpssToEigenvalues}
-\alias{dpssToEigenvalues}
-\title{Compute eigenvalues for the Discrete Prolate Spheroidal Sequences
-(dpss)}
+\name{CETmonthly}
+\alias{CETmonthly}
+\title{Central England Temperature monthly time series}
 \description{
-   Compute eigenvalues for the Discrete Prolate Spheroidal Sequences. The
-   method used here is described in Chapter 8 of Percival and Walden (1993).
+  Central England Temperature monthly time series from the Hadley Center United Kingdom
+  Meteorological Office, http://www.metoffice.gov.uk/hadobs/hadcet/.
+  The data set represents monthly CET temperature values recorded to the nearest 
+  tenth of a degree Celsius, and containing records for January 1659 through December 2011.
+  This dataset was retrieved from the Met office at Hadley on Mar 10, 2012.
 }
-\usage{
-dpssToEigenvalues(v, nw)
-}
-\arguments{
-  \item{v}{A matrix of dpss's, with each column representing a sequence of a
-    different order, 1 to k.}
-  \item{nw}{A positive double-precision number, the time-bandwidth
-    parameter.}
+\usage{CETmonthly}
+\format{ A data frame indicating the year, month and temperature 
+     observed in Central England. This data-set contains 4237
+     observations.
 }
 \references{
-Percival, D.B. and Walden, A.T. (1993)
-\emph{Spectral analysis for physical applications.}
-Cambridge University Press.
+Parker DE, Horton EB (2005). Uncertainties in central England
+temperature 1878-2003 and some improvements to the maximum and minimum
+series. \emph{Int. J. Climatol}. 25: 1173--1188.
 }
-\examples{
-dpss1 <- dpss(10,4,4.0, returnEigenvalues=FALSE)$v
-dpssToEigenvalues(dpss1,4.0)
-}
-\keyword{math}
+\keyword{datasets}
