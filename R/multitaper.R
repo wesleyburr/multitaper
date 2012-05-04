@@ -233,7 +233,9 @@ spec.mtm <- function(timeSeries,
     swz <- NULL ## Percival and Walden H0
     ssqswz <- NULL
     swz <- apply(dw, 2, sum)
-    swz[seq(2,k,2)] <- 0
+    if(k >= 2) {
+      swz[seq(2,k,2)] <- 0
+    }
     ssqswz <- as.numeric(t(swz)%*%swz)
 
     taperedData <- dw * timeSeries

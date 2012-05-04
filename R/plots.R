@@ -170,7 +170,7 @@ plot.mtm.coh <- function(x,
 
     TRmscTicks <- seq(0, max(plotTRmsc[,2]), .5)
     axis(2, at=TRmscTicks)
-    mtext("Inverse Transform of MSC",
+    mtext("Arctanh Transform of MSC",
           side=2, line=2, cex=par()$cex)
 
     ##  outer MSC axis on the left
