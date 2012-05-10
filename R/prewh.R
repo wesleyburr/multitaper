@@ -37,6 +37,12 @@
 ##############################################################
 prewh <- function(x, dT, maxlag){
 
+  stopifnot(!is.numeric(x))
+  if(!is.integer(maxlag)) {
+    warning("Maxlag must be an integer - casting!")
+    maxlag <- as.integer(maxlag)
+  }
+
   mX <- mean(x)
   x <- x - mX
   Sp <- spec.mtm(x,dT=dT,plot=FALSE)
@@ -66,6 +72,10 @@ Sp2Acv <- function(Sp,maxlag) {
     # requires a spec object; works with mtm objects as well
   if(!("spec" %in% class(Sp))) {
     stop("Sp2Acv requires a 'spec' object to function.")
+  }
+  if(!is.integer(maxlag)) {
+    warning("Maxlag must be an integer - casting!")
+    maxlag <- as.integer(maxlag)
   }
 
   if("mtm" %in% class(Sp)) {
