@@ -37,7 +37,7 @@
 ##############################################################
 prewh <- function(x, dT, maxlag){
 
-  stopifnot(!is.numeric(x))
+  stopifnot(is.numeric(x))
   if(!is.integer(maxlag)) {
     warning("Maxlag must be an integer - casting!")
     maxlag <- as.integer(maxlag)
