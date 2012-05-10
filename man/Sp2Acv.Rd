@@ -25,6 +25,7 @@
 %     Canada, K7L 3N6
 
 \name{Sp2Acv}
+\alias{Sp2Acv}
 \title{Compute robust estimate of AutoCoVariance (ACV)}
 \description{
     Given spectrum object (either from spec.mtm or spec.pgram), set up

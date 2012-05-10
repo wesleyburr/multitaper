@@ -25,6 +25,7 @@
 %     Canada, K7L 3N6
 
 \name{prewh}
+\alias{prewh}
 \title{Prewhiten a given time series}
 \description{
     Computes a robust estimate of the autocorrelation of a time series
