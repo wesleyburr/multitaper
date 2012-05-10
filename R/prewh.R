@@ -44,11 +44,11 @@ prewh <- function(x, dT, maxlag){
 
   N <- length(x)
   y <- rep(NA,N)
-  coef <- -1*acv[(maxlag+1):1]/acv[1]
-  coef[(maxlag+1)] <- abs(coef[(maxlag+1)])
+  coef <- -1*acv[maxlag:1]/acv[1]
+  coef[maxlag] <- -coef[maxlag]
 
   for(j in (maxlag+1):N) {
-    y[j] <- sum(coef * x[(j-maxlag):j])
+    y[j] <- t(coef) %*% x[(j-maxlag):j]
   }
   y 
 }
@@ -96,6 +96,6 @@ Sp2Acv <- function(Sp,maxlag) {
   }
   x <- x*delF
   acv8 <- Re(fft(complex(real=x,imaginary=y),inverse=TRUE))
-  acv8[1:(maxlag+1)]
+  acv8[1:maxlag]
 }
 
