@@ -43,7 +43,8 @@
 
 dpss <- function(n, k, nw, returnEigenvalues=TRUE) {
 
-    stopifnot(n >= 1, nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw)
+    stopifnot(n >= 1, nw >= 0.5, k >= 1, nw <= 500)
+    if(k >= 1.5+2*nw) { warning("Inner-Band concentration compromised by choice of k.") }
 
     # if k is passed in as floating point, the cast to 
     # as.integer() in the Fortran call does not quite work properly
