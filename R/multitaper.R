@@ -105,7 +105,8 @@ spec.mtm <- function(timeSeries,
     n <- length(timeSeries)
 
     if(taper=="dpss") {
-      stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw, n > 8)
+      stopifnot(nw >= 0.5, k >= 1, nw <= 500, n > 8)
+      if(k <= 1.5+2*nw) { warning("You have chosen k > 2NW. Are you sure you want to do this?") }
       if (nw/n > 0.5) { 
           stop("half-bandwidth parameter (w) is greater than 1/2")
       }
