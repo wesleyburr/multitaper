@@ -491,7 +491,8 @@ centre <- function(x, nw=NULL, k=NULL, deltaT=NULL, trim=0) {
         if(trim != 0) {
             warning(paste("Ignoring trim =", trim))
         }
-        stopifnot(nw >= 0.5, k >= 1, nw <= 500, k <= 1.5+2*nw)
+        stopifnot(nw >= 0.5, k >= 1, nw <= 500)
+        if(k>=1.5+2 * nw) {warning("You have chosen k > 2NW. Are you sure you want to do this?")}
         if (nw/length(x) > 0.5) { 
             stop("half-bandwidth parameter (w) is greater than 1/2")
         }
