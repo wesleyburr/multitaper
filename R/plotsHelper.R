@@ -67,7 +67,8 @@
     if(!is.null(siglines)) {
       for(j in 1:length(siglines)) {
         if(is.numeric(siglines[j]) && 0.80 <= siglines[j] && 1.000000 >= siglines[j]) {
-          sig0 <- qf(siglines[j],2,x$mtm$k) 
+          ## degree of freedom correction P&W page 499 changed to 2, 2*k-2 date Sept 30 2012
+          sig0 <- qf(siglines[j],2,2*x$mtm$k-2) 
           abline(h=sig0, col="red", lty=2, lwd=1) 
           mtext(paste(siglines[j]*100,"%",sep=""), side=4, line=0, at=ceiling(sig0), col="red")
         }
